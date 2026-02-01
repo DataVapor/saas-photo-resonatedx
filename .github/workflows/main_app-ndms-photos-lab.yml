@@ -52,6 +52,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: node-app
+          path: release
+
+      - name: Remove Oryx manifest if present
+        run: rm -f release/oryx-manifest.toml release/node_modules.tar.gz
 
       - name: Login to Azure
         uses: azure/login@v2
@@ -66,5 +70,5 @@ jobs:
         with:
           app-name: 'app-ndms-photos-lab'
           slot-name: 'Production'
-          package: node-app
+          package: release
           startup-command: 'node server.js'
