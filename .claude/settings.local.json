@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /a \"c:\\\\Users\\\\ravinder.mathaudhu\\\\GitHub\\\\app-ndms-photos-lab\")",
+      "Bash(npx --yes create-next-app@latest:*)"
+    ]
+  }
+}

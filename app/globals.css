@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+/* ASPR Brand Color Palette */
+:root {
+  /* Primary Colors */
+  --aspr-blue-primary: #155197;
+  --aspr-blue-dark: #062e61;
+  
+  /* Secondary Colors */
+  --aspr-gold: #AA6404;
+  --aspr-gold-light: #fbd098;
+  --aspr-red: #990000;
+  --aspr-red-light: #feecea;
+  --aspr-blue-medium: #2477bd;
+  --aspr-blue-light: #dde8f4;
+  
+  /* Accent Colors - Neutral */
+  --aspr-gray-dark: #323232;
+  --aspr-gray-light: #e6e6e4;
+  
+  /* Accent Colors - Charts/Graphs */
+  --aspr-purple: #604878;
+  --aspr-green: #4E8542;
+  
+  /* Theme Colors */
+  --background: #ffffff;
+  --foreground: var(--aspr-gray-dark);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* ASPR Brand Colors for Tailwind */
+  --color-aspr-blue-primary: var(--aspr-blue-primary);
+  --color-aspr-blue-dark: var(--aspr-blue-dark);
+  --color-aspr-blue-medium: var(--aspr-blue-medium);
+  --color-aspr-blue-light: var(--aspr-blue-light);
+  --color-aspr-gold: var(--aspr-gold);
+  --color-aspr-gold-light: var(--aspr-gold-light);
+  --color-aspr-red: var(--aspr-red);
+  --color-aspr-red-light: var(--aspr-red-light);
+  --color-aspr-gray-dark: var(--aspr-gray-dark);
+  --color-aspr-gray-light: var(--aspr-gray-light);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--aspr-blue-dark);
+    --foreground: #ffffff;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ASPR Header Styles */
+.aspr-header {
+  background-color: var(--aspr-blue-dark);
+  color: white;
+}
+
+/* ASPR Button Styles */
+.aspr-btn-primary {
+  background-color: var(--aspr-blue-primary);
+  color: white;
+  transition: background-color 0.2s;
+}
+
+.aspr-btn-primary:hover {
+  background-color: var(--aspr-blue-dark);
+}
+
+.aspr-btn-secondary {
+  background-color: var(--aspr-gold);
+  color: white;
+  transition: background-color 0.2s;
+}
+
+/* ASPR Link Styles */
+.aspr-link {
+  color: var(--aspr-blue-primary);
+}
+
+.aspr-link:hover {
+  color: var(--aspr-blue-dark);
+}
