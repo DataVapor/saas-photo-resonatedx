@@ -44,23 +44,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-aspr-blue-dark to-aspr-blue-primary flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-aspr-blue-dark to-aspr-blue-primary flex flex-col items-center justify-center p-4">
+      {/* HHS Logo - Above Box */}
+      <div className="mb-8">
+        <a href="https://www.hhs.gov" target="_blank" rel="noopener noreferrer" title="HHS.gov">
+          <img
+            src="/hhs_longlogo_white.png"
+            alt="HHS - U.S. Department of Health and Human Services"
+            style={{ height: '100px', width: 'auto' }}
+            className="drop-shadow-lg hover:opacity-80 transition"
+          />
+        </a>
+      </div>
+
       <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
-        {/* HHS + ASPR Logos */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <a href="https://www.hhs.gov" target="_blank" rel="noopener noreferrer">
-            <img
-              src="/hhs_longlogo_white.png"
-              alt="HHS"
-              style={{ height: '32px', width: 'auto' }}
-              className="bg-aspr-blue-dark p-2 rounded"
-            />
-          </a>
-          <a href="https://aspr.hhs.gov" target="_blank" rel="noopener noreferrer">
+        {/* ASPR + NDMS Logos Inside Box */}
+        <div className="flex items-center justify-center gap-8 mb-10 px-4">
+          <a href="https://aspr.hhs.gov" target="_blank" rel="noopener noreferrer" title="ASPR.HHS.gov">
             <img
               src="/aspr-logo-blue.png"
-              alt="ASPR"
-              style={{ height: '32px', width: 'auto' }}
+              alt="ASPR - Administration for Strategic Preparedness and Response"
+              style={{ height: '68px', width: 'auto' }}
+              className="hover:opacity-80 transition"
+            />
+          </a>
+          <a href="https://aspr.hhs.gov" target="_blank" rel="noopener noreferrer" title="NDMS">
+            <img
+              src="/ndms-logo.webp"
+              alt="NDMS - National Disaster Medical System"
+              style={{ height: '68px', width: 'auto' }}
+              className="hover:opacity-80 transition"
             />
           </a>
         </div>
@@ -82,17 +95,24 @@ export default function LoginPage() {
         {/* PIN Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">
+            <label htmlFor="pin" className="block text-sm font-semibold text-gray-700 mb-3">
               Enter 6-Digit PIN
             </label>
             <input
-              type="text"
+              id="pin"
+              type="number"
               inputMode="numeric"
               maxLength={6}
+              min="0"
+              max="999999"
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+              onChange={(e) => {
+                const value = e.target.value.slice(0, 6).replace(/[^0-9]/g, '')
+                setPin(value)
+              }}
               placeholder="000000"
-              className="w-full px-4 py-4 text-3xl text-center tracking-[0.5em] border-2 border-gray-300 rounded-lg focus:border-aspr-blue-primary focus:ring-2 focus:ring-aspr-blue-light font-mono font-bold"
+              autoComplete="off"
+              className="w-full px-4 py-4 text-3xl text-center tracking-[0.5em] border-2 border-gray-300 rounded-lg focus:border-aspr-blue-primary focus:ring-2 focus:ring-aspr-blue-light font-mono font-bold text-aspr-blue-dark placeholder-gray-400"
             />
           </div>
 

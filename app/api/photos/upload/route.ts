@@ -3,6 +3,8 @@ import { BlobServiceClient } from '@azure/storage-blob'
 import sharp from 'sharp'
 import { query } from '@/lib/db'
 import { verifyToken } from '@/lib/auth'
+import { rateLimit } from '@/lib/rateLimit'
+import { validation, createAuditLog, secureErrorResponse } from '@/lib/security'
 
 let blobClient: BlobServiceClient | null = null
 
@@ -17,6 +19,28 @@ function getBlobClient(): BlobServiceClient {
 
 export async function POST(req: Request) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || 'unknown'
+
+    // Rate limit uploads: 50 per hour per IP
+    const rateLimitKey = `upload:${ip}`
+    const limit = rateLimit(rateLimitKey, {
+      maxAttempts: 50,
+      windowMs: 60 * 60 * 1000, // 1 hour
+    })
+
+    if (!limit.allowed) {
+      const auditLog = createAuditLog('RATE_LIMIT_EXCEEDED', req, {
+        reason: 'Upload rate limit exceeded',
+        type: 'File Upload',
+      })
+      console.warn('SECURITY_ALERT:', auditLog)
+      
+      return Response.json(
+        { error: 'Upload rate limit exceeded' },
+        { status: 429 }
+      )
+    }
+
     // Verify auth token
     const authHeader = req.headers.get('authorization')
     const token = authHeader?.replace('Bearer ', '')
@@ -40,14 +64,43 @@ export async function POST(req: Request) {
       return Response.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    // Validate file
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      return Response.json({ error: 'Invalid image type' }, { status: 400 })
+    // OWASP: Input Validation - File Upload Protection
+    const fileValidation = validation.validateFile({
+      name: file.name,
+      size: file.size,
+      type: file.type,
+    })
+    if (!fileValidation.valid) {
+      const auditLog = createAuditLog('UPLOAD_FAILURE', req, {
+        reason: fileValidation.error,
+        sessionId,
+      })
+      console.warn('UPLOAD_FAILURE:', auditLog)
+      return Response.json({ error: fileValidation.error }, { status: 400 })
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      // 50MB limit
-      return Response.json({ error: 'File too large' }, { status: 400 })
+    // OWASP: Input Validation - Notes
+    if (notes) {
+      const notesValidation = validation.validateNotes(notes)
+      if (!notesValidation.valid) {
+        return Response.json({ error: notesValidation.error }, { status: 400 })
+      }
+    }
+
+    // OWASP: Input Validation - Coordinates
+    if (latitude !== null || longitude !== null) {
+      const coordValidation = validation.validateCoordinates(latitude || 0, longitude || 0)
+      if (!coordValidation.valid) {
+        return Response.json({ error: coordValidation.error }, { status: 400 })
+      }
+    }
+
+    // OWASP: Input Validation - Incident ID
+    if (incidentId) {
+      const incidentValidation = validation.validateIncidentId(incidentId)
+      if (!incidentValidation.valid) {
+        return Response.json({ error: incidentValidation.error }, { status: 400 })
+      }
     }
 
     const buffer = await file.arrayBuffer()
