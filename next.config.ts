@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
 
   // Security Headers - OWASP & CIS Compliance
