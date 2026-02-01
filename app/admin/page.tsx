@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 export default function AdminDashboard() {
   const [adminToken, setAdminToken] = useState('')
+  const [storedToken, setStoredToken] = useState('')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [teamName, setTeamName] = useState('')
   const [pins, setPins] = useState<any[]>([])
@@ -22,6 +23,7 @@ export default function AdminDashboard() {
       setError('Admin token is required')
       return
     }
+    setStoredToken(adminToken)
     setIsAuthenticated(true)
     setError('')
     setAdminToken('')
@@ -38,7 +40,7 @@ export default function AdminDashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-token': adminToken || '',
+          'x-admin-token': storedToken,
         },
         body: JSON.stringify({ teamName: teamName || 'Team ' + Date.now() }),
       })
@@ -125,7 +127,7 @@ export default function AdminDashboard() {
           </div>
           <Button
             variant="ghost"
-            onClick={() => setIsAuthenticated(false)}
+            onClick={() => { setIsAuthenticated(false); setStoredToken('') }}
             className="text-white hover:bg-white/20"
           >
             <LogOut className="w-4 h-4 mr-2" />
