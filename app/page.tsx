@@ -22,45 +22,48 @@ interface PhotoFile {
 const STEP_ORDER: Step[] = ['welcome', 'pin', 'photos', 'metadata', 'uploading', 'success']
 
 /* ─── Animation Variants ─────────────────────────────── */
+const EASE_OUT = [0.25, 0.8, 0.25, 1] as const
+const EASE_IN = [0.4, 0, 1, 1] as const
+
 const pageVariants = {
   enter: (d: number) => ({
-    x: d > 0 ? 300 : -300,
+    x: d > 0 ? '100%' : '-100%',
+    y: d > 0 ? 40 : 0,
     opacity: 0,
-    filter: 'blur(4px)',
   }),
   center: {
     x: 0,
+    y: 0,
     opacity: 1,
-    filter: 'blur(0px)',
-    transition: { type: 'spring' as const, stiffness: 260, damping: 28 },
+    transition: { duration: 0.35, ease: EASE_OUT },
   },
   exit: (d: number) => ({
-    x: d < 0 ? 300 : -300,
+    x: d < 0 ? '100%' : '-100%',
+    y: 0,
     opacity: 0,
-    filter: 'blur(4px)',
-    transition: { duration: 0.22 },
+    transition: { duration: 0.25, ease: EASE_IN },
   }),
 }
 
 const stagger = {
-  animate: { transition: { staggerChildren: 0.07 } },
+  animate: { transition: { staggerChildren: 0.04 } },
 }
 
-const fadeUp = {
-  initial: { opacity: 0, y: 28 },
+const slideUp = {
+  initial: { opacity: 0, y: 30 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { type: 'spring' as const, stiffness: 280, damping: 22 },
+    transition: { duration: 0.3, ease: EASE_OUT },
   },
 }
 
 const popIn = {
-  initial: { scale: 0, opacity: 0 },
+  initial: { scale: 0.85, opacity: 0 },
   animate: {
     scale: 1,
     opacity: 1,
-    transition: { type: 'spring' as const, stiffness: 420, damping: 18 },
+    transition: { duration: 0.25, ease: EASE_OUT },
   },
 }
 
@@ -391,10 +394,9 @@ export default function PhotoUploadWizard() {
           <motion.div
             key="welcome"
             custom={direction}
-            variants={pageVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ x: '-100%', opacity: 0, transition: { duration: 0.25, ease: EASE_IN } }}
             className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
           >
             <motion.div
@@ -404,7 +406,7 @@ export default function PhotoUploadWizard() {
               className="text-center space-y-10"
             >
               {/* HHS */}
-              <motion.div variants={fadeUp}>
+              <motion.div variants={slideUp}>
                 <img
                   src="/hhs_longlogo_white.png"
                   alt="U.S. Department of Health and Human Services"
@@ -422,7 +424,7 @@ export default function PhotoUploadWizard() {
               </motion.div>
 
               {/* Title */}
-              <motion.div variants={fadeUp} className="space-y-3">
+              <motion.div variants={slideUp} className="space-y-3">
                 <h1 className="text-5xl md:text-7xl font-display text-white tracking-wide leading-tight uppercase">
                   Photo Repository
                 </h1>
@@ -432,7 +434,7 @@ export default function PhotoUploadWizard() {
               </motion.div>
 
               {/* CTA */}
-              <motion.div variants={fadeUp}>
+              <motion.div variants={slideUp}>
                 <motion.button
                   onClick={() => goTo('pin')}
                   whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
@@ -445,7 +447,7 @@ export default function PhotoUploadWizard() {
               </motion.div>
 
               {/* Footer */}
-              <motion.div variants={fadeUp} className="pt-6 space-y-1 text-xs text-blue-300/30">
+              <motion.div variants={slideUp} className="pt-6 space-y-1 text-xs text-blue-300/30">
                 <p className="font-semibold">
                   Administration for Strategic Preparedness and Response
                 </p>
@@ -474,7 +476,7 @@ export default function PhotoUploadWizard() {
             >
               {/* Back */}
               <motion.button
-                variants={fadeUp}
+                variants={slideUp}
                 onClick={() => goTo('welcome')}
                 className="text-blue-300/50 hover:text-white transition text-sm"
               >
@@ -499,7 +501,7 @@ export default function PhotoUploadWizard() {
               </motion.div>
 
               {/* Title */}
-              <motion.div variants={fadeUp} className="space-y-2">
+              <motion.div variants={slideUp} className="space-y-2">
                 <h2 className="text-4xl font-display text-white tracking-wide uppercase">
                   {pinValid ? `Welcome, ${teamName}` : 'Enter Access PIN'}
                 </h2>
@@ -513,7 +515,7 @@ export default function PhotoUploadWizard() {
               {/* PIN boxes */}
               {!pinValid && (
                 <motion.div
-                  variants={fadeUp}
+                  variants={slideUp}
                   className="flex gap-3 justify-center"
                   onPaste={handlePinPaste}
                 >
@@ -761,19 +763,19 @@ export default function PhotoUploadWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="min-h-[calc(100vh-56px)]"
+            className="h-[calc(100vh-56px)] flex flex-col"
           >
-            <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+            <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col flex-1 min-h-0">
               {/* Photo strip */}
               <motion.div
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex gap-2 overflow-x-auto pb-2 snap-x scrollbar-none"
+                className="flex gap-1.5 overflow-x-auto pb-2 snap-x scrollbar-none flex-shrink-0"
               >
                 {photos.map((p) => (
                   <div
                     key={p.id}
-                    className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden ring-2 ring-white shadow-md snap-start"
+                    className="flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden ring-2 ring-white shadow-md snap-start"
                   >
                     <img
                       src={p.preview}
@@ -784,115 +786,93 @@ export default function PhotoUploadWizard() {
                 ))}
               </motion.div>
 
-              <motion.div
-                variants={stagger}
-                initial="initial"
-                animate="animate"
-                className="space-y-5"
-              >
-                {/* Section label */}
-                <motion.p
-                  variants={fadeUp}
-                  className="text-sm font-semibold text-slate-400 uppercase tracking-wider"
-                >
-                  Add Details (Optional)
-                </motion.p>
-
-                {/* Incident ID */}
-                <motion.div variants={fadeUp} className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-600">Incident ID</label>
-                  <input
-                    type="text"
-                    value={incidentId}
-                    onChange={(e) => setIncidentId(e.target.value)}
-                    placeholder="e.g., HU-2024-001"
-                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-white
-                      focus:border-[#155197] focus:ring-2 focus:ring-[#155197]/15
-                      outline-none transition text-slate-800 text-base"
-                  />
-                </motion.div>
-
-                {/* Location */}
-                <motion.div variants={fadeUp} className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-600">Location</label>
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={getLocation}
-                      disabled={locating}
-                      className="flex items-center gap-2 px-5 py-3.5 rounded-2xl border border-slate-200
-                        bg-white hover:border-[#155197]/40 transition text-sm font-medium text-slate-600"
-                    >
-                      {locating ? (
-                        <Loader2 className="w-4 h-4 animate-spin text-[#155197]" />
-                      ) : (
-                        <Locate className="w-4 h-4 text-[#155197]" />
-                      )}
-                      {locating ? 'Getting GPS...' : 'Get Location'}
-                    </motion.button>
-                    <AnimatePresence>
-                      {location && (
-                        <motion.div
-                          initial={{ opacity: 0, x: 12, scale: 0.95 }}
-                          animate={{ opacity: 1, x: 0, scale: 1 }}
-                          exit={{ opacity: 0, x: 12 }}
-                          className="flex-1 flex items-center gap-2 px-4 py-3.5 rounded-2xl
-                            bg-[#155197]/8 border border-[#155197]/15
-                            text-[#155197] text-sm font-mono"
-                        >
-                          <MapPin className="w-4 h-4 flex-shrink-0" />
-                          {locationName}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+              <div className="flex-1 min-h-0 flex flex-col gap-3 pt-3">
+                {/* Incident ID + Location row */}
+                <div className="flex gap-3">
+                  <div className="flex-1 space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Incident ID</label>
+                    <input
+                      type="text"
+                      value={incidentId}
+                      onChange={(e) => setIncidentId(e.target.value)}
+                      placeholder="e.g., HU-2024-001"
+                      className="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white
+                        focus:border-[#155197] focus:ring-2 focus:ring-[#155197]/15
+                        outline-none transition text-slate-800 text-sm"
+                    />
                   </div>
-                </motion.div>
+                  <div className="flex-1 space-y-1">
+                    <label className="text-xs font-semibold text-slate-500">Location</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={getLocation}
+                        disabled={locating}
+                        className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-slate-200
+                          bg-white hover:border-[#155197]/40 transition text-sm font-medium text-slate-600"
+                      >
+                        {locating ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#155197]" />
+                        ) : (
+                          <Locate className="w-3.5 h-3.5 text-[#155197]" />
+                        )}
+                        {locating ? 'GPS...' : 'Get GPS'}
+                      </button>
+                      <AnimatePresence>
+                        {location && (
+                          <motion.div
+                            initial={{ opacity: 0, x: 8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 8 }}
+                            className="flex-1 flex items-center gap-1.5 px-3 py-2.5 rounded-xl
+                              bg-[#155197]/8 border border-[#155197]/15
+                              text-[#155197] text-xs font-mono truncate"
+                          >
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="truncate">{locationName}</span>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Notes */}
-                <motion.div variants={fadeUp} className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-600">Notes</label>
+                <div className="flex-1 min-h-0 flex flex-col space-y-1">
+                  <label className="text-xs font-semibold text-slate-500">Notes (optional)</label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value.slice(0, 500))}
                     placeholder="Describe what's in the photos, context, conditions..."
-                    rows={4}
-                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-white
+                    className="flex-1 min-h-[60px] w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-white
                       focus:border-[#155197] focus:ring-2 focus:ring-[#155197]/15
-                      outline-none transition resize-none text-slate-800 text-base"
+                      outline-none transition resize-none text-slate-800 text-sm"
                   />
-                  <p className="text-xs text-slate-400 text-right">{notes.length} / 500</p>
-                </motion.div>
-              </motion.div>
+                  <p className="text-[10px] text-slate-400 text-right">{notes.length}/500</p>
+                </div>
+              </div>
 
-              {/* Actions */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="flex gap-3 pt-4"
-              >
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
+              {/* Actions — always pinned at bottom */}
+              <div className="flex gap-3 pt-3 pb-2 flex-shrink-0">
+                <button
+                  type="button"
                   onClick={() => goTo('photos')}
-                  className="flex-1 py-4 rounded-2xl border-2 border-slate-200 text-slate-500
-                    font-semibold hover:bg-slate-50 transition"
+                  className="flex-1 py-3 rounded-xl border-2 border-slate-200 text-slate-500
+                    font-semibold hover:bg-slate-50 transition text-sm"
                 >
                   &larr; Back
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.97 }}
+                </button>
+                <button
+                  type="button"
                   onClick={handleUpload}
-                  className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-[#062e61] to-[#155197]
-                    text-white font-semibold text-lg shadow-lg shadow-[#062e61]/20
+                  className="flex-[2] py-3 rounded-xl bg-gradient-to-r from-[#062e61] to-[#155197]
+                    text-white font-semibold shadow-lg shadow-[#062e61]/20
                     flex items-center justify-center gap-2"
                 >
-                  <Send className="w-5 h-5" />
+                  <Send className="w-4 h-4" />
                   Upload {photos.length} Photo{photos.length !== 1 ? 's' : ''}
-                </motion.button>
-              </motion.div>
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -1031,7 +1011,7 @@ export default function PhotoUploadWizard() {
               className="text-center space-y-8 relative z-10"
             >
               {/* ASPR logo */}
-              <motion.div variants={fadeUp}>
+              <motion.div variants={slideUp}>
                 <img src="/aspr-logo-white.png" alt="" className="h-10 mx-auto opacity-30" />
               </motion.div>
 
@@ -1045,7 +1025,7 @@ export default function PhotoUploadWizard() {
               </motion.div>
 
               {/* Message */}
-              <motion.div variants={fadeUp} className="space-y-2">
+              <motion.div variants={slideUp} className="space-y-2">
                 <h2 className="text-4xl md:text-5xl font-display text-white tracking-wide uppercase">Upload Complete</h2>
                 <p className="text-blue-200/60 text-lg">
                   {lastBatchSize} photo{lastBatchSize !== 1 ? 's' : ''} uploaded successfully
@@ -1054,7 +1034,7 @@ export default function PhotoUploadWizard() {
               </motion.div>
 
               {/* Actions */}
-              <motion.div variants={fadeUp} className="flex flex-col gap-3 w-full max-w-xs mx-auto">
+              <motion.div variants={slideUp} className="flex flex-col gap-3 w-full max-w-xs mx-auto">
                 <motion.button
                   whileHover={{ scale: 1.04, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
                   whileTap={{ scale: 0.97 }}

@@ -130,13 +130,16 @@ export async function POST(req: Request) {
     const thumbnailBlob = containerClient.getBlockBlobClient(`${photoId}/thumbnail`)
 
     await originalBlob.upload(imageBuffer, imageBuffer.length, {
+      blobHTTPHeaders: { blobContentType: file.type },
       metadata: {
         uploadTime: new Date().toISOString(),
         sessionId,
       },
     })
 
-    await thumbnailBlob.upload(thumbnail, thumbnail.length)
+    await thumbnailBlob.upload(thumbnail, thumbnail.length, {
+      blobHTTPHeaders: { blobContentType: 'image/webp' },
+    })
 
     // Save metadata to database
     const photoResult = await query(

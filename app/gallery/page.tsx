@@ -272,6 +272,16 @@ export default function GalleryPage() {
                     alt={photo.fileName}
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
+                    onError={(e) => {
+                      const target = e.currentTarget
+                      // Try original URL as fallback, then show placeholder
+                      if (photo.originalUrl && target.src !== photo.originalUrl) {
+                        target.src = photo.originalUrl
+                      } else {
+                        target.style.display = 'none'
+                        target.parentElement?.classList.add('bg-slate-100')
+                      }
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full bg-slate-100 flex items-center justify-center">
@@ -369,6 +379,11 @@ export default function GalleryPage() {
                     src={selectedPhoto.originalUrl}
                     alt={selectedPhoto.fileName}
                     className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                    onError={(e) => {
+                      if (selectedPhoto.thumbnailUrl && e.currentTarget.src !== selectedPhoto.thumbnailUrl) {
+                        e.currentTarget.src = selectedPhoto.thumbnailUrl
+                      }
+                    }}
                   />
                 ) : selectedPhoto.thumbnailUrl ? (
                   <img

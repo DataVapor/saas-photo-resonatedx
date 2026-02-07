@@ -17,46 +17,48 @@ interface PinEntry {
 }
 
 /* ─── Animation Variants ─────────────────────────────── */
+const EASE_OUT = [0.25, 0.8, 0.25, 1] as const
+const EASE_IN = [0.4, 0, 1, 1] as const
+
 const pageVariants = {
-  enter: { x: 300, opacity: 0, filter: 'blur(4px)' },
+  enter: { x: '100%', y: 40, opacity: 0 },
   center: {
     x: 0,
+    y: 0,
     opacity: 1,
-    filter: 'blur(0px)',
-    transition: { type: 'spring' as const, stiffness: 260, damping: 28 },
+    transition: { duration: 0.35, ease: EASE_OUT },
   },
-  exit: { x: -300, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.22 } },
+  exit: { x: '-100%', opacity: 0, transition: { duration: 0.25, ease: EASE_IN } },
 }
 
 const stagger = {
-  animate: { transition: { staggerChildren: 0.06 } },
+  animate: { transition: { staggerChildren: 0.04 } },
 }
 
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
+const slideUp = {
+  initial: { opacity: 0, y: 30 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { type: 'spring' as const, stiffness: 280, damping: 22 },
+    transition: { duration: 0.3, ease: EASE_OUT },
   },
 }
 
 const popIn = {
-  initial: { scale: 0, opacity: 0 },
+  initial: { scale: 0.85, opacity: 0 },
   animate: {
     scale: 1,
     opacity: 1,
-    transition: { type: 'spring' as const, stiffness: 420, damping: 18 },
+    transition: { duration: 0.25, ease: EASE_OUT },
   },
 }
 
 const cardPop = {
-  initial: { opacity: 0, scale: 0.92, y: 12 },
+  initial: { opacity: 0, y: 20 },
   animate: {
     opacity: 1,
-    scale: 1,
     y: 0,
-    transition: { type: 'spring' as const, stiffness: 350, damping: 22 },
+    transition: { duration: 0.3, ease: EASE_OUT },
   },
 }
 
@@ -217,10 +219,9 @@ export default function AdminDashboard() {
         {step === 'login' && (
           <motion.div
             key="login"
-            variants={pageVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ x: '-100%', opacity: 0, transition: { duration: 0.25, ease: EASE_IN } }}
             className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
           >
             <motion.div
@@ -230,7 +231,7 @@ export default function AdminDashboard() {
               className="text-center space-y-8 w-full max-w-sm"
             >
               {/* HHS + ASPR logos */}
-              <motion.div variants={fadeUp}>
+              <motion.div variants={slideUp}>
                 <img
                   src="/hhs_longlogo_white.png"
                   alt="U.S. Department of Health and Human Services"
@@ -254,7 +255,7 @@ export default function AdminDashboard() {
               </motion.div>
 
               {/* Title */}
-              <motion.div variants={fadeUp} className="space-y-2">
+              <motion.div variants={slideUp} className="space-y-2">
                 <h1 className="text-4xl md:text-5xl font-display text-white tracking-wide uppercase">
                   Admin Portal
                 </h1>
@@ -264,7 +265,7 @@ export default function AdminDashboard() {
               </motion.div>
 
               {/* Login form */}
-              <motion.form variants={fadeUp} onSubmit={handleLogin} className="space-y-4">
+              <motion.form variants={slideUp} onSubmit={handleLogin} className="space-y-4">
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                   <input
@@ -307,7 +308,7 @@ export default function AdminDashboard() {
               </motion.form>
 
               {/* Footer */}
-              <motion.div variants={fadeUp} className="pt-4 space-y-1 text-xs text-blue-300/25">
+              <motion.div variants={slideUp} className="pt-4 space-y-1 text-xs text-blue-300/25">
                 <p className="font-semibold">Administration for Strategic Preparedness and Response</p>
                 <p>U.S. Department of Health and Human Services</p>
               </motion.div>

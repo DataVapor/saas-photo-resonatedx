@@ -118,8 +118,11 @@ export const validation = {
    */
   validateIncidentId(id: string): { valid: boolean; error?: string } {
     if (!id) return { valid: true } // Optional field
-    if (!/^[A-Z]{2}-\d{4}-\d{3}$/.test(id)) {
-      return { valid: false, error: 'Invalid incident ID format (expected: XX-YYYY-000)' }
+    if (id.length > 50) {
+      return { valid: false, error: 'Incident ID must be under 50 characters' }
+    }
+    if (!/^[a-zA-Z0-9\-_]+$/.test(id)) {
+      return { valid: false, error: 'Incident ID contains invalid characters' }
     }
     return { valid: true }
   },
