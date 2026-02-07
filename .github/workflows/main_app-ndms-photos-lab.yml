@@ -56,15 +56,15 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_D11602D3B70E4BFB88EA01EF6BA233F4 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C75FA11D5B7D49A59EC4EF9BA2D3E825 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_875753270D544AA6893FD596ECC7296F }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'app-ndms-photos-lab'
+          app-name: 'app-aspr-photos'
           slot-name: 'Production'
           package: .
           startup-command: 'node server.js'
