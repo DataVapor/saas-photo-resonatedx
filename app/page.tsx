@@ -445,14 +445,14 @@ export default function PhotoUploadWizard() {
               variants={stagger}
               initial="initial"
               animate="animate"
-              className="text-center space-y-10"
+              className="text-center space-y-6 lg:space-y-8"
             >
               {/* HHS */}
               <motion.div variants={slideUp}>
                 <img
                   src="/hhs_longlogo_white.png"
                   alt="U.S. Department of Health and Human Services"
-                  className="h-24 md:h-28 mx-auto opacity-60"
+                  className="h-16 md:h-20 lg:h-28 mx-auto opacity-60"
                 />
               </motion.div>
 
@@ -461,16 +461,16 @@ export default function PhotoUploadWizard() {
                 <img
                   src="/aspr-logo-white.png"
                   alt="ASPR"
-                  className="h-24 mx-auto drop-shadow-[0_0_40px_rgba(21,81,151,0.6)]"
+                  className="h-16 md:h-20 lg:h-24 mx-auto drop-shadow-[0_0_40px_rgba(21,81,151,0.6)]"
                 />
               </motion.div>
 
               {/* Title */}
-              <motion.div variants={slideUp} className="space-y-3">
-                <h1 className="text-5xl md:text-7xl font-display text-white tracking-wide leading-tight uppercase">
+              <motion.div variants={slideUp} className="space-y-2">
+                <h1 className="text-4xl md:text-5xl lg:text-7xl font-display text-white tracking-wide leading-tight uppercase">
                   Photo Repository
                 </h1>
-                <p className="text-lg md:text-xl text-blue-200/60 max-w-lg mx-auto leading-relaxed">
+                <p className="text-base md:text-lg lg:text-xl text-blue-200/60 max-w-lg mx-auto leading-relaxed">
                   Secure photo upload for disaster response and emergency documentation
                 </p>
               </motion.div>
@@ -479,17 +479,19 @@ export default function PhotoUploadWizard() {
               <motion.div variants={slideUp}>
                 <motion.button
                   onClick={() => goTo('pin')}
-                  whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
-                  whileTap={{ scale: 0.97 }}
-                  className="inline-flex items-center gap-3 bg-white text-[#062e61] px-10 py-5 rounded-2xl font-bold text-lg shadow-xl shadow-black/20 transition-shadow"
+                  whileHover={{ y: -2, boxShadow: '0 0 30px rgba(255,255,255,0.15)' }}
+                  whileTap={{ y: 0 }}
+                  className="inline-flex items-center gap-2.5 bg-white/90 backdrop-blur-sm text-[#062e61]
+                    px-7 py-3.5 rounded-lg font-semibold text-base
+                    border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-all"
                 >
                   Get Started
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-4 h-4" />
                 </motion.button>
               </motion.div>
 
               {/* Footer */}
-              <motion.div variants={slideUp} className="pt-6 space-y-1 text-xs text-blue-300/30">
+              <motion.div variants={slideUp} className="pt-2 lg:pt-6 space-y-1 text-xs text-blue-300/30">
                 <p className="font-semibold">
                   Administration for Strategic Preparedness and Response
                 </p>
@@ -514,7 +516,7 @@ export default function PhotoUploadWizard() {
               variants={stagger}
               initial="initial"
               animate="animate"
-              className="text-center space-y-8 w-full max-w-sm"
+              className="text-center space-y-6 w-full max-w-sm"
             >
               {/* Back */}
               <motion.button
@@ -533,18 +535,18 @@ export default function PhotoUploadWizard() {
                     animate={{ scale: 1 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 12 }}
                   >
-                    <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto drop-shadow-[0_0_20px_rgba(52,211,153,0.5)]" />
+                    <CheckCircle2 className="w-14 h-14 text-emerald-400 mx-auto drop-shadow-[0_0_20px_rgba(52,211,153,0.5)]" />
                   </motion.div>
                 ) : (
-                  <div className="w-20 h-20 rounded-3xl bg-white/[0.07] backdrop-blur-sm border border-white/10 flex items-center justify-center mx-auto">
-                    <Shield className="w-9 h-9 text-blue-300/80" />
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.07] backdrop-blur-sm border border-white/10 flex items-center justify-center mx-auto">
+                    <Shield className="w-7 h-7 text-blue-300/80" />
                   </div>
                 )}
               </motion.div>
 
               {/* Title */}
               <motion.div variants={slideUp} className="space-y-2">
-                <h2 className="text-4xl font-display text-white tracking-wide uppercase">
+                <h2 className="text-3xl md:text-4xl font-display text-white tracking-wide uppercase">
                   {pinValid ? `Welcome, ${teamName}` : 'Enter Access PIN'}
                 </h2>
                 {!pinValid && (
@@ -577,11 +579,11 @@ export default function PhotoUploadWizard() {
                       transition={{ duration: 0.4 }}
                       disabled={authLoading}
                       autoFocus={i === 0}
-                      className={`w-12 h-16 rounded-xl text-center text-2xl font-bold
-                        bg-white/[0.07] backdrop-blur-sm border-2 text-white outline-none
+                      className={`w-12 h-16 rounded-lg text-center text-2xl font-bold
+                        bg-white/[0.07] backdrop-blur-sm border text-white outline-none
                         transition-all duration-200
-                        ${digit ? 'border-blue-400 bg-blue-400/10' : 'border-white/15'}
-                        focus:border-blue-400 focus:ring-2 focus:ring-blue-400/25
+                        ${digit ? 'border-blue-400/60 bg-blue-400/10' : 'border-white/15'}
+                        focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/15
                         disabled:opacity-50`}
                     />
                   ))}
@@ -627,167 +629,195 @@ export default function PhotoUploadWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="min-h-[calc(100vh-56px)]"
+            className="h-[calc(100vh-56px)] flex flex-col"
           >
-            <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-6">
-              {/* Drop zone */}
+            <div className="max-w-2xl mx-auto w-full px-4 py-4 flex flex-col flex-1 min-h-0">
+              {/* Drop zone + camera — compact row */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                onDragOver={(e) => {
-                  e.preventDefault()
-                  setDragOver(true)
-                }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={onDrop}
-                onClick={() => fileRef.current?.click()}
-                className={`relative cursor-pointer rounded-3xl border-2 border-dashed p-14 text-center
-                  transition-all duration-300 ${
-                    dragOver
-                      ? 'border-blue-400 bg-blue-400/10 scale-[1.02] shadow-xl shadow-blue-400/10'
-                      : 'border-white/20 hover:border-white/40 hover:bg-white/5'
-                  }`}
+                className="flex gap-2 flex-shrink-0"
               >
-                <motion.div
-                  animate={
-                    dragOver
-                      ? { scale: 1.15, rotate: 8, y: -4 }
-                      : { scale: 1, rotate: 0, y: 0 }
-                  }
-                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                {/* Drop zone */}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={onDrop}
+                  onClick={() => fileRef.current?.click()}
+                  className={`flex-1 cursor-pointer rounded-2xl border-2 border-dashed
+                    flex items-center gap-4 px-5 py-4 transition-all duration-300 ${
+                      dragOver
+                        ? 'border-blue-400 bg-blue-400/10 scale-[1.01]'
+                        : 'border-white/20 hover:border-white/40 hover:bg-white/5'
+                    }`}
                 >
-                  <ImagePlus className="w-14 h-14 mx-auto text-white/30 mb-4" />
-                </motion.div>
-                <p className="text-lg font-semibold text-white">
-                  {dragOver ? 'Drop photos here' : 'Tap to select photos'}
-                </p>
-                <p className="text-sm text-blue-200/50 mt-1">
-                  or drag &amp; drop &bull; JPG, PNG, HEIC &bull; Max 50 MB
-                </p>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  aria-label="Select photos to upload"
-                  onChange={(e) => {
-                    if (e.target.files) addPhotos(e.target.files)
-                    e.target.value = ''
+                  <motion.div
+                    animate={dragOver ? { scale: 1.15, rotate: 8 } : { scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                    className="w-10 h-10 rounded-xl bg-white/[0.07] border border-white/10
+                      flex items-center justify-center flex-shrink-0"
+                  >
+                    <ImagePlus className="w-5 h-5 text-white/40" />
+                  </motion.div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">
+                      {dragOver ? 'Drop here' : 'Select photos'}
+                    </p>
+                    <p className="text-[11px] text-white/40 truncate">
+                      Drag &amp; drop &bull; JPG, PNG &bull; 50 MB max
+                    </p>
+                  </div>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    aria-label="Select photos to upload"
+                    onChange={(e) => {
+                      if (e.target.files) addPhotos(e.target.files)
+                      e.target.value = ''
+                    }}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Camera button — compact square */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const input = document.createElement('input')
+                    input.type = 'file'
+                    input.accept = 'image/*'
+                    input.capture = 'environment'
+                    input.onchange = (e) => {
+                      const files = (e.target as HTMLInputElement).files
+                      if (files) addPhotos(files)
+                    }
+                    input.click()
                   }}
-                  className="hidden"
-                />
+                  className="w-[68px] rounded-2xl bg-white/[0.07] border border-white/10
+                    flex flex-col items-center justify-center gap-1
+                    hover:bg-white/[0.12] transition flex-shrink-0"
+                >
+                  <Camera className="w-5 h-5 text-white/60" />
+                  <span className="text-[10px] text-white/40 font-medium">Camera</span>
+                </motion.button>
               </motion.div>
 
-              {/* Camera button */}
-              <motion.button
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  const input = document.createElement('input')
-                  input.type = 'file'
-                  input.accept = 'image/*'
-                  input.capture = 'environment'
-                  input.onchange = (e) => {
-                    const files = (e.target as HTMLInputElement).files
-                    if (files) addPhotos(files)
-                  }
-                  input.click()
-                }}
-                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl
-                  bg-[#062e61] text-white font-semibold text-lg
-                  hover:bg-[#0a3d7a] active:bg-[#155197] transition-colors shadow-lg shadow-[#062e61]/20"
-              >
-                <Camera className="w-5 h-5" />
-                Take Photo
-              </motion.button>
+              {/* Photo grid — scrollable area */}
+              <div className="flex-1 min-h-0 mt-3 overflow-auto">
+                <AnimatePresence>
+                  {photos.length > 0 ? (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
+                          {photos.length} photo{photos.length !== 1 ? 's' : ''} selected
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            photos.forEach((p) => URL.revokeObjectURL(p.preview))
+                            setPhotos([])
+                          }}
+                          className="text-[11px] text-red-400/60 hover:text-red-300 transition font-medium"
+                        >
+                          Clear all
+                        </button>
+                      </div>
 
-              {/* Photo grid */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        <AnimatePresence>
+                          {photos.map((photo, i) => (
+                            <motion.div
+                              key={photo.id}
+                              layout
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={{
+                                delay: i * 0.03,
+                                type: 'spring',
+                                stiffness: 400,
+                                damping: 22,
+                              }}
+                              className="relative aspect-square rounded-xl overflow-hidden group
+                                shadow-md shadow-black/20 ring-1 ring-white/10"
+                            >
+                              <img
+                                src={photo.preview}
+                                alt={photo.file.name}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent
+                                opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <motion.button
+                                whileHover={{ scale: 1.15 }}
+                                whileTap={{ scale: 0.85 }}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removePhoto(photo.id)
+                                }}
+                                className="absolute top-1 right-1 w-6 h-6 rounded-full
+                                  bg-black/60 text-white flex items-center justify-center
+                                  opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                              >
+                                <X className="w-3 h-3" />
+                              </motion.button>
+                              <div className="absolute bottom-0 inset-x-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <p className="text-[9px] text-white/90 truncate bg-black/40 backdrop-blur-sm rounded px-1 py-0.5">
+                                  {photo.file.name}
+                                </p>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex flex-col items-center justify-center h-full gap-3"
+                    >
+                      <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.06]
+                        flex items-center justify-center"
+                      >
+                        <Upload className="w-7 h-7 text-white/15" />
+                      </div>
+                      <p className="text-sm text-white/25">Select or capture photos above</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Sticky bottom bar — slides up when photos selected */}
               <AnimatePresence>
                 {photos.length > 0 && (
                   <motion.div
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="space-y-5"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 20, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                    className="flex-shrink-0 pt-3 pb-1"
                   >
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
-                        {photos.length} photo{photos.length !== 1 ? 's' : ''} selected
-                      </h3>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          photos.forEach((p) => URL.revokeObjectURL(p.preview))
-                          setPhotos([])
-                        }}
-                        className="text-xs text-red-400/70 hover:text-red-300 transition font-medium"
-                      >
-                        Clear all
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                      <AnimatePresence>
-                        {photos.map((photo, i) => (
-                          <motion.div
-                            key={photo.id}
-                            layout
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            transition={{
-                              delay: i * 0.04,
-                              type: 'spring',
-                              stiffness: 400,
-                              damping: 22,
-                            }}
-                            className="relative aspect-square rounded-2xl overflow-hidden group shadow-lg shadow-black/30 ring-1 ring-white/10"
-                          >
-                            <img
-                              src={photo.preview}
-                              alt={photo.file.name}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <motion.button
-                              whileHover={{ scale: 1.15 }}
-                              whileTap={{ scale: 0.85 }}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                removePhoto(photo.id)
-                              }}
-                              className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full
-                                bg-black/60 text-white flex items-center justify-center
-                                opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </motion.button>
-                            <div className="absolute bottom-0 inset-x-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <p className="text-[10px] text-white/90 truncate bg-black/40 backdrop-blur-sm rounded px-1.5 py-0.5">
-                                {photo.file.name}
-                              </p>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Continue */}
                     <motion.button
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
+                      whileHover={{ y: -1 }}
+                      whileTap={{ y: 0 }}
                       onClick={() => goTo('metadata')}
-                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#062e61] to-[#155197]
-                        text-white font-semibold text-lg shadow-lg shadow-[#062e61]/20
-                        flex items-center justify-center gap-2"
+                      className="w-full py-3 rounded-lg bg-white/90 backdrop-blur-sm text-[#062e61]
+                        font-semibold text-sm border border-white/30
+                        shadow-[0_0_15px_rgba(255,255,255,0.06)]
+                        flex items-center justify-center gap-2 transition-all"
                     >
-                      Continue
-                      <ChevronRight className="w-5 h-5" />
+                      Continue with {photos.length} photo{photos.length !== 1 ? 's' : ''}
+                      <ChevronRight className="w-4 h-4" />
                     </motion.button>
                   </motion.div>
                 )}
@@ -838,9 +868,9 @@ export default function PhotoUploadWizard() {
                       value={incidentId}
                       onChange={(e) => setIncidentId(e.target.value)}
                       placeholder="e.g., HU-2024-001"
-                      className="w-full px-3 py-2.5 rounded-xl border border-white/10 bg-white/10
-                        focus:border-white/30 focus:ring-2 focus:ring-white/10
-                        outline-none transition text-white placeholder:text-white/30 text-sm"
+                      className="w-full px-3 py-2.5 rounded-lg border border-white/10 bg-white/[0.08]
+                        focus:border-white/25 focus:ring-2 focus:ring-white/10
+                        outline-none transition-all text-white placeholder:text-white/30 text-sm"
                     />
                   </div>
                   <div className="flex-1 space-y-1">
@@ -850,8 +880,8 @@ export default function PhotoUploadWizard() {
                         type="button"
                         onClick={getLocation}
                         disabled={locating}
-                        className="flex items-center gap-1 px-2.5 py-2.5 rounded-xl border border-white/10
-                          bg-white/10 hover:bg-white/20 transition text-xs font-medium text-white/70"
+                        className="flex items-center gap-1 px-2.5 py-2.5 rounded-lg border border-white/10
+                          bg-white/[0.08] hover:bg-white/[0.14] hover:border-white/20 transition-all text-xs font-medium text-white/70"
                       >
                         {locating ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-300" />
@@ -869,16 +899,16 @@ export default function PhotoUploadWizard() {
                           onChange={(e) => setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
                           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); lookupZip() } }}
                           placeholder="ZIP"
-                          className="w-[72px] px-2.5 py-2.5 rounded-xl border border-white/10 bg-white/10
-                            focus:border-white/30 focus:ring-2 focus:ring-white/10
-                            outline-none transition text-white placeholder:text-white/30 text-sm text-center"
+                          className="w-[72px] px-2.5 py-2.5 rounded-lg border border-white/10 bg-white/[0.08]
+                            focus:border-white/25 focus:ring-2 focus:ring-white/10
+                            outline-none transition-all text-white placeholder:text-white/30 text-sm text-center"
                         />
                         {zipCode.length === 5 && (
                           <button
                             type="button"
                             onClick={lookupZip}
                             disabled={zipLooking}
-                            className="px-2 py-2.5 rounded-xl bg-[#155197] text-white text-xs font-medium"
+                            className="px-2 py-2.5 rounded-lg bg-white/[0.12] border border-white/15 text-white text-xs font-medium hover:bg-white/[0.18] transition-all"
                           >
                             {zipLooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Go'}
                           </button>
@@ -906,8 +936,8 @@ export default function PhotoUploadWizard() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl
-                        bg-white/10 border border-white/10
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-lg
+                        bg-white/[0.08] border border-white/10
                         text-blue-200 text-xs font-mono"
                     >
                       <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
@@ -931,9 +961,9 @@ export default function PhotoUploadWizard() {
                     value={notes}
                     onChange={(e) => setNotes(e.target.value.slice(0, 500))}
                     placeholder="Describe what's in the photos, context, conditions..."
-                    className="flex-1 min-h-[60px] w-full px-3 py-2.5 rounded-xl border border-white/10 bg-white/10
-                      focus:border-white/30 focus:ring-2 focus:ring-white/10
-                      outline-none transition resize-none text-white placeholder:text-white/30 text-sm"
+                    className="flex-1 min-h-[60px] w-full px-3 py-2.5 rounded-lg border border-white/10 bg-white/[0.08]
+                      focus:border-white/25 focus:ring-2 focus:ring-white/10
+                      outline-none transition-all resize-none text-white placeholder:text-white/30 text-sm"
                   />
                   <p className="text-[10px] text-white/30 text-right">{notes.length}/500</p>
                 </div>
@@ -944,17 +974,19 @@ export default function PhotoUploadWizard() {
                 <button
                   type="button"
                   onClick={() => goTo('photos')}
-                  className="flex-1 py-3 rounded-xl border-2 border-white/15 text-white/60
-                    font-semibold hover:bg-white/5 transition text-sm"
+                  className="flex-1 py-3 rounded-lg border border-white/15 text-white/60
+                    font-medium hover:bg-white/[0.08] hover:border-white/25 transition-all text-sm"
                 >
                   &larr; Back
                 </button>
                 <button
                   type="button"
                   onClick={handleUpload}
-                  className="flex-[2] py-3 rounded-xl bg-gradient-to-r from-[#062e61] to-[#155197]
-                    text-white font-semibold shadow-lg shadow-[#062e61]/20
-                    flex items-center justify-center gap-2"
+                  className="flex-[2] py-3 rounded-lg bg-white/90 backdrop-blur-sm
+                    text-[#062e61] font-semibold border border-white/30
+                    shadow-[0_0_15px_rgba(255,255,255,0.06)]
+                    flex items-center justify-center gap-2 transition-all
+                    hover:bg-white hover:shadow-[0_0_25px_rgba(255,255,255,0.12)]"
                 >
                   <Send className="w-4 h-4" />
                   Upload {photos.length} Photo{photos.length !== 1 ? 's' : ''}
@@ -975,19 +1007,19 @@ export default function PhotoUploadWizard() {
             exit="exit"
             className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
           >
-            <div className="text-center space-y-10">
+            <div className="text-center space-y-6">
               {/* ASPR logo */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.3 }}
                 transition={{ delay: 0.3 }}
               >
-                <img src="/aspr-logo-white.png" alt="" className="h-10 mx-auto" />
+                <img src="/aspr-logo-white.png" alt="" className="h-8 mx-auto" />
               </motion.div>
 
               {/* Progress ring */}
-              <div className="relative w-40 h-40 mx-auto">
-                <svg className="w-40 h-40 -rotate-90" viewBox="0 0 120 120">
+              <div className="relative w-32 h-32 lg:w-40 lg:h-40 mx-auto">
+                <svg className="w-32 h-32 lg:w-40 lg:h-40 -rotate-90" viewBox="0 0 120 120">
                   <circle
                     cx="60"
                     cy="60"
@@ -1023,7 +1055,7 @@ export default function PhotoUploadWizard() {
                     key={uploadProgress}
                     initial={{ scale: 1.3, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="text-4xl font-bold text-white"
+                    className="text-3xl lg:text-4xl font-bold text-white"
                   >
                     {uploadProgress}%
                   </motion.span>
@@ -1031,7 +1063,7 @@ export default function PhotoUploadWizard() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-xl font-semibold text-white">
+                <p className="text-lg font-semibold text-white">
                   {uploadError
                     ? 'Upload Failed'
                     : uploadProgress === 100
@@ -1040,7 +1072,7 @@ export default function PhotoUploadWizard() {
                 </p>
 
                 {/* Linear bar */}
-                <div className="w-72 mx-auto">
+                <div className="w-64 lg:w-72 mx-auto">
                   <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full rounded-full bg-gradient-to-r from-blue-400 to-emerald-400"
@@ -1061,11 +1093,12 @@ export default function PhotoUploadWizard() {
                     >
                       <p className="text-red-400 text-sm">{uploadError}</p>
                       <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={{ y: -1 }}
+                        whileTap={{ y: 0 }}
                         onClick={handleUpload}
-                        className="inline-flex items-center gap-2 bg-white text-[#062e61]
-                          px-6 py-3 rounded-xl font-semibold shadow-lg"
+                        className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm text-[#062e61]
+                          px-6 py-3 rounded-lg font-semibold border border-white/30
+                          shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all"
                       >
                         <RotateCcw className="w-4 h-4" /> Retry
                       </motion.button>
@@ -1095,25 +1128,25 @@ export default function PhotoUploadWizard() {
               variants={stagger}
               initial="initial"
               animate="animate"
-              className="text-center space-y-8 relative z-10"
+              className="text-center space-y-6 lg:space-y-8 relative z-10"
             >
               {/* ASPR logo */}
               <motion.div variants={slideUp}>
-                <img src="/aspr-logo-white.png" alt="" className="h-10 mx-auto opacity-30" />
+                <img src="/aspr-logo-white.png" alt="" className="h-8 lg:h-10 mx-auto opacity-30" />
               </motion.div>
 
               {/* Success icon */}
               <motion.div
                 variants={popIn}
-                className="w-28 h-28 rounded-full bg-emerald-500/15 border border-emerald-400/20
+                className="w-24 h-24 lg:w-28 lg:h-28 rounded-full bg-emerald-500/15 border border-emerald-400/20
                   flex items-center justify-center mx-auto backdrop-blur-sm"
               >
-                <CheckCircle2 className="w-16 h-16 text-emerald-400 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]" />
+                <CheckCircle2 className="w-12 h-12 lg:w-16 lg:h-16 text-emerald-400 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]" />
               </motion.div>
 
               {/* Message */}
               <motion.div variants={slideUp} className="space-y-2">
-                <h2 className="text-4xl md:text-5xl font-display text-white tracking-wide uppercase">Upload Complete</h2>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-display text-white tracking-wide uppercase">Upload Complete</h2>
                 <p className="text-blue-200/60 text-lg">
                   {lastBatchSize} photo{lastBatchSize !== 1 ? 's' : ''} uploaded successfully
                 </p>
@@ -1123,23 +1156,24 @@ export default function PhotoUploadWizard() {
               {/* Actions */}
               <motion.div variants={slideUp} className="flex flex-col gap-3 w-full max-w-xs mx-auto">
                 <motion.button
-                  whileHover={{ scale: 1.04, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
-                  whileTap={{ scale: 0.97 }}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ y: 0 }}
                   onClick={resetForMore}
-                  className="inline-flex items-center justify-center gap-2.5
-                    bg-white text-[#062e61] px-8 py-4 rounded-2xl
-                    font-bold text-lg shadow-xl shadow-black/20 transition-shadow"
+                  className="inline-flex items-center justify-center gap-2
+                    bg-white/90 backdrop-blur-sm text-[#062e61] py-3 rounded-lg
+                    font-semibold text-sm border border-white/30
+                    shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all"
                 >
-                  <Camera className="w-5 h-5" />
+                  <Camera className="w-4 h-4" />
                   Upload More Photos
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.03 }}
-                  whileTap={{ scale: 0.97 }}
+                  whileHover={{ y: -1 }}
+                  whileTap={{ y: 0 }}
                   onClick={() => router.push('/gallery')}
                   className="inline-flex items-center justify-center gap-2
-                    bg-white/10 border border-white/20 text-white px-8 py-3.5 rounded-2xl
-                    font-semibold backdrop-blur-sm hover:bg-white/15 transition"
+                    bg-white/[0.08] border border-white/15 text-white/80 py-3 rounded-lg
+                    font-medium text-sm backdrop-blur-sm hover:bg-white/[0.14] hover:border-white/25 transition-all"
                 >
                   <ImageIcon className="w-4 h-4" />
                   View Gallery

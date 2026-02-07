@@ -36,20 +36,19 @@ const stagger = {
 }
 
 const slideUp = {
-  initial: { opacity: 0, y: 30 },
+  initial: { opacity: 0, y: 8 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.3, ease: EASE_OUT },
+    transition: { duration: 0.4, ease: EASE_OUT },
   },
 }
 
 const popIn = {
-  initial: { scale: 0.85, opacity: 0 },
+  initial: { opacity: 0 },
   animate: {
-    scale: 1,
     opacity: 1,
-    transition: { duration: 0.25, ease: EASE_OUT },
+    transition: { duration: 0.35, ease: EASE_OUT },
   },
 }
 
@@ -224,14 +223,14 @@ export default function AdminDashboard() {
               variants={stagger}
               initial="initial"
               animate="animate"
-              className="text-center space-y-8 w-full max-w-sm"
+              className="text-center space-y-6 w-full max-w-sm"
             >
               {/* HHS + ASPR logos */}
               <motion.div variants={slideUp}>
                 <img
                   src="/hhs_longlogo_white.png"
                   alt="U.S. Department of Health and Human Services"
-                  className="h-20 md:h-24 mx-auto opacity-50"
+                  className="h-16 md:h-20 lg:h-24 mx-auto opacity-50"
                 />
               </motion.div>
 
@@ -239,20 +238,20 @@ export default function AdminDashboard() {
                 <img
                   src="/aspr-logo-white.png"
                   alt="ASPR"
-                  className="h-16 mx-auto drop-shadow-[0_0_30px_rgba(21,81,151,0.5)]"
+                  className="h-16 md:h-20 mx-auto drop-shadow-[0_0_30px_rgba(21,81,151,0.5)]"
                 />
               </motion.div>
 
               {/* Icon */}
               <motion.div variants={popIn}>
-                <div className="w-20 h-20 rounded-3xl bg-white/[0.07] backdrop-blur-sm border border-white/10 flex items-center justify-center mx-auto">
-                  <Key className="w-9 h-9 text-blue-300/80" />
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.07] backdrop-blur-sm border border-white/10 flex items-center justify-center mx-auto">
+                  <Key className="w-7 h-7 text-blue-300/80" />
                 </div>
               </motion.div>
 
               {/* Title */}
               <motion.div variants={slideUp} className="space-y-2">
-                <h1 className="text-4xl md:text-5xl font-display text-white tracking-wide uppercase">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-display text-white tracking-wide uppercase">
                   Admin Portal
                 </h1>
                 <p className="text-sm text-blue-200/50">
@@ -270,9 +269,9 @@ export default function AdminDashboard() {
                     value={adminToken}
                     onChange={(e) => { setAdminToken(e.target.value); setError('') }}
                     placeholder="Enter admin token"
-                    className="w-full pl-11 pr-4 py-4 rounded-2xl bg-white/[0.07] backdrop-blur-sm
-                      border-2 border-white/15 text-white placeholder-white/30 outline-none
-                      focus:border-blue-400 focus:ring-2 focus:ring-blue-400/25 transition-all"
+                    className="w-full pl-11 pr-4 py-3.5 rounded-lg bg-white/[0.07] backdrop-blur-sm
+                      border border-white/15 text-white placeholder-white/30 outline-none
+                      focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/15 transition-all"
                   />
                 </div>
 
@@ -292,19 +291,20 @@ export default function AdminDashboard() {
 
                 <motion.button
                   type="submit"
-                  whileHover={{ scale: 1.04, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
-                  whileTap={{ scale: 0.97 }}
-                  className="w-full inline-flex items-center justify-center gap-3
-                    bg-white text-[#062e61] py-4 rounded-2xl
-                    font-bold text-lg shadow-xl shadow-black/20 transition-shadow"
+                  whileHover={{ y: -1, boxShadow: '0 0 25px rgba(255,255,255,0.12)' }}
+                  whileTap={{ y: 0 }}
+                  className="w-full inline-flex items-center justify-center gap-2
+                    bg-white/90 backdrop-blur-sm text-[#062e61] py-3.5 rounded-lg
+                    font-semibold text-base border border-white/30
+                    shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all"
                 >
                   Authenticate
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-4 h-4" />
                 </motion.button>
               </motion.form>
 
               {/* Footer */}
-              <motion.div variants={slideUp} className="pt-4 space-y-1 text-xs text-blue-300/25">
+              <motion.div variants={slideUp} className="pt-2 lg:pt-4 space-y-1 text-xs text-blue-300/25">
                 <p className="font-semibold">Administration for Strategic Preparedness and Response</p>
                 <p>U.S. Department of Health and Human Services</p>
               </motion.div>
@@ -351,7 +351,7 @@ export default function AdminDashboard() {
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
                       placeholder="e.g., Urban Search & Rescue, Medical Team 1"
-                      className="w-full px-4 py-3 rounded-xl border border-white/10 bg-white/10
+                      className="w-full px-4 py-3 rounded-lg border border-white/10 bg-white/10
                         focus:border-white/30 focus:ring-2 focus:ring-white/10
                         outline-none transition text-white placeholder:text-white/30 text-sm"
                     />
@@ -375,12 +375,13 @@ export default function AdminDashboard() {
                   <motion.button
                     type="submit"
                     disabled={loading}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full py-3 rounded-xl bg-white text-[#062e61]
-                      font-semibold text-base shadow-lg shadow-black/20
+                    whileHover={{ y: -1 }}
+                    whileTap={{ y: 0 }}
+                    className="w-full py-3 rounded-lg bg-white/90 backdrop-blur-sm text-[#062e61]
+                      font-semibold text-sm border border-white/30
+                      shadow-[0_0_15px_rgba(255,255,255,0.06)]
                       flex items-center justify-center gap-2
-                      disabled:opacity-60 disabled:cursor-not-allowed transition"
+                      disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                   >
                     {loading ? (
                       <>
