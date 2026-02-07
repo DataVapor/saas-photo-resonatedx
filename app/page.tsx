@@ -412,11 +412,15 @@ export default function PhotoUploadWizard() {
             alt=""
             className="w-full h-full object-cover animate-ken-burns"
           />
+          {/* Vertical gradient */}
           <div className={`absolute inset-0 transition-all duration-[1200ms] ${
             step === 'success'
               ? 'bg-gradient-to-b from-[#031a36]/70 via-emerald-950/60 to-[#062e61]'
               : 'bg-gradient-to-b from-[#031a36]/40 via-[#062e61]/60 to-[#062e61]'
           }`} />
+          {/* Edge darkening — right side */}
+          <div className="absolute inset-0 bg-gradient-to-l from-[#031a36]/70 via-[#031a36]/20 to-transparent" />
+          {/* Radial vignette */}
           <div className="absolute inset-0 hero-vignette" />
         </div>
 
@@ -427,7 +431,11 @@ export default function PhotoUploadWizard() {
             alt=""
             className="w-full h-full object-cover animate-ken-burns-delayed"
           />
+          {/* Vertical gradient */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#031a36]/60 via-[#062e61]/75 to-[#062e61]" />
+          {/* Edge darkening — right side */}
+          <div className="absolute inset-0 bg-gradient-to-l from-[#031a36]/80 via-[#031a36]/30 to-transparent" />
+          {/* Radial vignette */}
           <div className="absolute inset-0 hero-vignette" />
         </div>
       </div>
