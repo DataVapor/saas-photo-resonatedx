@@ -43,10 +43,9 @@ export async function POST(req: Request) {
       return Response.json({ error: validation_result.error }, { status: 400 })
     }
     const result = await query(
-      `SELECT id, team_name FROM upload_sessions 
-       WHERE pin = @pin 
-       AND is_active = 1 
-       AND expires_at > GETDATE()`,
+      `SELECT id, team_name FROM upload_sessions
+       WHERE pin = @pin
+       AND expires_at > GETUTCDATE()`,
       { pin }
     )
 

@@ -140,27 +140,27 @@ export async function POST(req: Request) {
 
     // Save metadata to database
     const photoResult = await query(
-      `INSERT INTO photos 
-       (id, session_id, file_name, blob_url, file_size, width, height, mime_type, 
-        latitude, longitude, location_name, notes, incident_id, timestamp) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) 
-       RETURNING id`,
-      [
-        photoId,
+      `INSERT INTO photos
+       (id, session_id, file_name, blob_url, file_size, width, height, mime_type,
+        latitude, longitude, location_name, notes, incident_id)
+       OUTPUT INSERTED.id
+       VALUES (@id, @sessionId, @fileName, @blobUrl, @fileSize, @width, @height, @mimeType,
+               @latitude, @longitude, @locationName, @notes, @incidentId)`,
+      {
+        id: photoId,
         sessionId,
-        file.name,
-        originalBlob.url,
-        file.size,
-        metadata.width || 0,
-        metadata.height || 0,
-        file.type,
+        fileName: file.name,
+        blobUrl: originalBlob.url,
+        fileSize: file.size,
+        width: metadata.width || 0,
+        height: metadata.height || 0,
+        mimeType: file.type,
         latitude,
         longitude,
         locationName,
         notes,
         incidentId,
-        new Date(),
-      ]
+      }
     )
 
     return Response.json({

@@ -38,8 +38,8 @@ async function getPool(): Promise<ConnectionPool | null> {
   // Determine authentication method
   let config: sqlConfig
 
-  if (process.env.NODE_ENV === 'development' && process.env.SQL_USERNAME && process.env.SQL_PASSWORD) {
-    // Development: Use SQL Server authentication
+  if (process.env.SQL_USERNAME && process.env.SQL_PASSWORD) {
+    // SQL Server authentication (when credentials are provided)
     config = {
       server: process.env.SQL_SERVER || '',
       database: process.env.SQL_DATABASE || '',
@@ -52,13 +52,13 @@ async function getPool(): Promise<ConnectionPool | null> {
       },
       options: {
         encrypt: true,
-        trustServerCertificate: true, // Allow self-signed certs in dev
+        trustServerCertificate: process.env.NODE_ENV === 'development',
         connectTimeout: 30000,
       },
     }
-    console.log('ℹ️ Using SQL Server authentication (development mode)')
+    console.log('ℹ️ Using SQL Server authentication')
   } else {
-    // Production: Use Entra ID token authentication
+    // Entra ID token authentication (managed identity)
     const accessToken = await getAccessToken()
     config = {
       server: process.env.SQL_SERVER || '',
@@ -130,8 +130,8 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
   
   const sqlUpper = sql.toUpperCase().trim()
   
-  // INSERT INTO upload_sessions with RETURNING
-  if (sqlUpper.includes('INSERT INTO') && sqlUpper.includes('UPLOAD_SESSIONS') && sqlUpper.includes('RETURNING')) {
+  // INSERT INTO upload_sessions with OUTPUT
+  if (sqlUpper.includes('INSERT INTO') && sqlUpper.includes('UPLOAD_SESSIONS') && sqlUpper.includes('OUTPUT')) {
     const newSession = {
       id: params?.id || Math.random().toString(36).substr(2, 9),
       pin: params?.pin,
@@ -142,11 +142,11 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
     const sessions = mockDatabase.get('upload_sessions') || []
     sessions.push(newSession)
     mockDatabase.set('upload_sessions', sessions)
-    // RETURNING id, pin, team_name
+    // OUTPUT INSERTED.id, INSERTED.pin, INSERTED.team_name
     return { rows: [{ id: newSession.id, pin: newSession.pin, team_name: newSession.team_name }] }
   }
-  
-  // INSERT INTO upload_sessions (no RETURNING)
+
+  // INSERT INTO upload_sessions (no OUTPUT)
   if (sqlUpper.includes('INSERT INTO') && sqlUpper.includes('UPLOAD_SESSIONS')) {
     const newSession = {
       id: params?.id || Math.random().toString(36).substr(2, 9),
@@ -175,8 +175,8 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
     return { rows: sessions }
   }
   
-  // INSERT INTO photos with RETURNING
-  if (sqlUpper.includes('INSERT INTO') && sqlUpper.includes('PHOTOS') && sqlUpper.includes('RETURNING')) {
+  // INSERT INTO photos with OUTPUT
+  if (sqlUpper.includes('INSERT INTO') && sqlUpper.includes('PHOTOS') && sqlUpper.includes('OUTPUT')) {
     const newPhoto = {
       id: params?.id || Math.random().toString(36).substr(2, 9),
       session_id: params?.sessionId,
@@ -196,11 +196,11 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
     const photos = mockDatabase.get('photos') || []
     photos.push(newPhoto)
     mockDatabase.set('photos', photos)
-    // RETURNING id, file_name, file_size, width, height, mime_type
+    // OUTPUT INSERTED.id
     return { rows: [{ id: newPhoto.id, file_name: newPhoto.file_name, file_size: newPhoto.file_size, width: newPhoto.width, height: newPhoto.height, mime_type: newPhoto.mime_type }] }
   }
-  
-  // INSERT INTO photos (no RETURNING)
+
+  // INSERT INTO photos (no OUTPUT)
   if (sqlUpper.includes('INSERT INTO') && sqlUpper.includes('PHOTOS')) {
     const newPhoto = {
       id: params?.id || Math.random().toString(36).substr(2, 9),

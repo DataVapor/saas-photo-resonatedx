@@ -74,9 +74,9 @@ export async function POST(req: Request) {
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
     const result = await query(
-      `INSERT INTO upload_sessions (pin, team_name, expires_at) 
-       VALUES (@pin, @teamName, @expiresAt) 
-       RETURNING id, pin, team_name`,
+      `INSERT INTO upload_sessions (pin, team_name, expires_at)
+       OUTPUT INSERTED.id, INSERTED.pin, INSERTED.team_name
+       VALUES (@pin, @teamName, @expiresAt)`,
       { pin, teamName: teamName || 'Anonymous', expiresAt }
     )
 
