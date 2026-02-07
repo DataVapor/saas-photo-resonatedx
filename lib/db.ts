@@ -134,7 +134,7 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
   if (sqlUpper.includes('INSERT INTO') && sqlUpper.includes('UPLOAD_SESSIONS') && sqlUpper.includes('OUTPUT')) {
     const newSession = {
       id: params?.id || Math.random().toString(36).substr(2, 9),
-      pin: params?.pin,
+      pin: params?.pinHash || params?.pin,
       team_name: params?.teamName,
       expires_at: params?.expiresAt instanceof Date ? params.expiresAt.toISOString() : String(params?.expiresAt),
       created_at: new Date().toISOString(),
@@ -142,15 +142,15 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
     const sessions = mockDatabase.get('upload_sessions') || []
     sessions.push(newSession)
     mockDatabase.set('upload_sessions', sessions)
-    // OUTPUT INSERTED.id, INSERTED.pin, INSERTED.team_name
-    return { rows: [{ id: newSession.id, pin: newSession.pin, team_name: newSession.team_name }] }
+    // OUTPUT INSERTED.id, INSERTED.team_name (no longer returns pin)
+    return { rows: [{ id: newSession.id, team_name: newSession.team_name }] }
   }
 
   // INSERT INTO upload_sessions (no OUTPUT)
   if (sqlUpper.includes('INSERT INTO') && sqlUpper.includes('UPLOAD_SESSIONS')) {
     const newSession = {
       id: params?.id || Math.random().toString(36).substr(2, 9),
-      pin: params?.pin,
+      pin: params?.pinHash || params?.pin,
       team_name: params?.teamName,
       expires_at: params?.expiresAt instanceof Date ? params.expiresAt.toISOString() : String(params?.expiresAt),
       created_at: new Date().toISOString(),
@@ -160,19 +160,12 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
     mockDatabase.set('upload_sessions', sessions)
     return { rows: [] }
   }
-  
-  // SELECT FROM upload_sessions WHERE pin
-  if (sqlUpper.includes('SELECT') && sqlUpper.includes('UPLOAD_SESSIONS') && sqlUpper.includes('PIN')) {
-    const sessions = mockDatabase.get('upload_sessions') || []
-    const pin = params?.pin
-    const filtered = sessions.filter((s: any) => s.pin === pin && new Date(s.expires_at) > new Date())
-    return { rows: filtered }
-  }
-  
-  // SELECT FROM upload_sessions (all)
+
+  // SELECT FROM upload_sessions (all non-expired — bcrypt compare happens in route)
   if (sqlUpper.includes('SELECT') && sqlUpper.includes('UPLOAD_SESSIONS')) {
     const sessions = mockDatabase.get('upload_sessions') || []
-    return { rows: sessions }
+    const filtered = sessions.filter((s: any) => new Date(s.expires_at) > new Date())
+    return { rows: filtered }
   }
   
   // INSERT INTO photos with OUTPUT

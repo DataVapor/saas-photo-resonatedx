@@ -2,6 +2,7 @@ import { query } from '@/lib/db'
 import { signToken } from '@/lib/auth'
 import { rateLimit } from '@/lib/rateLimit'
 import { validation, secureErrorResponse, createAuditLog } from '@/lib/security'
+import bcrypt from 'bcryptjs'
 
 export async function POST(req: Request) {
   try {
@@ -42,29 +43,37 @@ export async function POST(req: Request) {
       
       return Response.json({ error: validation_result.error }, { status: 400 })
     }
+    // Fetch all non-expired sessions and compare hashes (bcrypt can't do WHERE)
     const result = await query(
-      `SELECT id, team_name FROM upload_sessions
-       WHERE pin = @pin
-       AND expires_at > GETUTCDATE()`,
-      { pin }
+      `SELECT id, pin, team_name FROM upload_sessions
+       WHERE expires_at > GETUTCDATE()`,
+      {}
     )
 
-    if (result.rows.length === 0) {
+    let matchedSession: { id: string; team_name: string } | null = null
+    for (const row of result.rows) {
+      if (await bcrypt.compare(pin, row.pin)) {
+        matchedSession = row
+        break
+      }
+    }
+
+    if (!matchedSession) {
       // Log failed PIN validation
       const auditLog = createAuditLog('AUTH_FAILURE', req, {
         reason: 'Invalid or expired PIN',
         remainingAttempts: limit.remaining,
       })
       console.warn('AUTH_FAILURE:', auditLog)
-      
+
       return Response.json(
         { error: `Invalid or expired PIN. ${limit.remaining} attempts remaining.` },
         { status: 401 }
       )
     }
 
-    const sessionId = result.rows[0].id
-    const teamName = result.rows[0].team_name
+    const sessionId = matchedSession.id
+    const teamName = matchedSession.team_name
     const token = signToken({ sessionId }, '24h')
 
     // Log successful authentication

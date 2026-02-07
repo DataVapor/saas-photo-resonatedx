@@ -182,12 +182,8 @@ export default function AdminDashboard() {
      RENDER
      ═══════════════════════════════════════════════ */
   return (
-    <div className={`min-h-screen relative overflow-hidden transition-colors duration-700 ${
-      step === 'login'
-        ? 'bg-gradient-to-br from-[#031a36] via-[#062e61] to-[#155197]'
-        : 'bg-gradient-to-b from-slate-50 to-white'
-    }`}>
-      {step === 'login' && <Particles />}
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#031a36] via-[#062e61] to-[#155197]">
+      <Particles />
 
       {/* ─── Dashboard header ─── */}
       {step === 'dashboard' && (
@@ -331,9 +327,9 @@ export default function AdminDashboard() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden"
+                className="rounded-3xl shadow-lg shadow-black/20 border border-white/10 bg-white/[0.07] backdrop-blur-sm overflow-hidden"
               >
-                <div className="bg-gradient-to-r from-[#062e61] to-[#155197] px-6 py-5">
+                <div className="bg-white/[0.05] border-b border-white/10 px-6 py-5">
                   <h2 className="font-display text-2xl tracking-wide uppercase text-white flex items-center gap-3">
                     <Plus className="w-5 h-5" />
                     Create New PIN
@@ -345,7 +341,7 @@ export default function AdminDashboard() {
 
                 <form onSubmit={createPin} className="p-6 space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="teamName" className="text-sm font-semibold text-slate-600">
+                    <label htmlFor="teamName" className="text-sm font-semibold text-white/50">
                       Team Name
                     </label>
                     <input
@@ -355,11 +351,11 @@ export default function AdminDashboard() {
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
                       placeholder="e.g., Urban Search & Rescue, Medical Team 1"
-                      className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-white
-                        focus:border-[#155197] focus:ring-2 focus:ring-[#155197]/15
-                        outline-none transition text-slate-800 text-base"
+                      className="w-full px-4 py-3.5 rounded-2xl border border-white/10 bg-white/10
+                        focus:border-white/30 focus:ring-2 focus:ring-white/10
+                        outline-none transition text-white placeholder:text-white/30 text-base"
                     />
-                    <p className="text-xs text-slate-400">Leave blank for auto-generated name</p>
+                    <p className="text-xs text-white/30">Leave blank for auto-generated name</p>
                   </div>
 
                   <AnimatePresence>
@@ -368,7 +364,7 @@ export default function AdminDashboard() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="flex items-center gap-2 text-red-500 text-sm"
+                        className="flex items-center gap-2 text-red-400 text-sm"
                       >
                         <AlertCircle className="w-4 h-4" />
                         {createError}
@@ -381,8 +377,8 @@ export default function AdminDashboard() {
                     disabled={loading}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#062e61] to-[#155197]
-                      text-white font-semibold text-lg shadow-lg shadow-[#062e61]/20
+                    className="w-full py-4 rounded-2xl bg-white text-[#062e61]
+                      font-semibold text-lg shadow-lg shadow-black/20
                       flex items-center justify-center gap-2
                       disabled:opacity-60 disabled:cursor-not-allowed transition"
                   >
@@ -409,12 +405,12 @@ export default function AdminDashboard() {
                 className="space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <h2 className="font-display text-xl tracking-wide uppercase text-slate-700 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-[#155197]" />
+                  <h2 className="font-display text-xl tracking-wide uppercase text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-300/60" />
                     Active PINs
                   </h2>
                   {pins.length > 0 && (
-                    <span className="text-xs font-semibold bg-[#155197]/10 text-[#155197] px-3 py-1 rounded-full">
+                    <span className="text-xs font-semibold bg-white/10 text-white/60 px-3 py-1 rounded-full">
                       {pins.length} PIN{pins.length !== 1 ? 's' : ''}
                     </span>
                   )}
@@ -427,11 +423,11 @@ export default function AdminDashboard() {
                     animate={{ opacity: 1 }}
                     className="flex flex-col items-center py-16 gap-3"
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
-                      <Key className="w-8 h-8 text-slate-300" />
+                    <div className="w-16 h-16 rounded-2xl bg-white/[0.07] border border-white/10 flex items-center justify-center">
+                      <Key className="w-8 h-8 text-white/20" />
                     </div>
-                    <p className="text-slate-400 font-medium">No PINs created yet</p>
-                    <p className="text-xs text-slate-300">Create a PIN above to get started</p>
+                    <p className="text-white/40 font-medium">No PINs created yet</p>
+                    <p className="text-xs text-white/25">Create a PIN above to get started</p>
                   </motion.div>
                 )}
 
@@ -443,11 +439,11 @@ export default function AdminDashboard() {
                         key={pin.id}
                         variants={cardPop}
                         layout
-                        className={`bg-white rounded-2xl border overflow-hidden
-                          transition-all duration-500 shadow-sm hover:shadow-md
+                        className={`rounded-2xl border overflow-hidden bg-white/[0.07] backdrop-blur-sm
+                          transition-all duration-500 shadow-lg shadow-black/20
                           ${justCreated === pin.id
-                            ? 'border-emerald-300 ring-2 ring-emerald-400/20 shadow-emerald-100'
-                            : 'border-slate-100'
+                            ? 'border-emerald-400/40 ring-2 ring-emerald-400/20'
+                            : 'border-white/10'
                           }`}
                       >
                         <div className="p-4 flex items-center gap-4">
@@ -456,8 +452,8 @@ export default function AdminDashboard() {
                             <div className={`px-5 py-3 rounded-xl font-mono font-bold text-xl tracking-[0.2em]
                               transition-colors duration-500
                               ${justCreated === pin.id
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-slate-50 text-[#062e61]'
+                                ? 'bg-emerald-500/20 text-emerald-300'
+                                : 'bg-white/10 text-white'
                               }`}>
                               {pin.pin}
                             </div>
@@ -475,12 +471,12 @@ export default function AdminDashboard() {
 
                           {/* Info */}
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-slate-800 truncate">
+                            <p className="font-semibold text-white truncate">
                               {pin.team_name}
                             </p>
-                            <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                            <p className="text-xs text-white/40 flex items-center gap-1.5 mt-0.5">
                               <Clock className="w-3 h-3" />
-                              Expires in 7 days
+                              Expires in 48 hours
                             </p>
                           </div>
 
@@ -493,7 +489,7 @@ export default function AdminDashboard() {
                             className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all
                               ${copiedId === pin.id
                                 ? 'bg-emerald-500 text-white'
-                                : 'bg-slate-50 text-slate-400 hover:bg-[#155197]/10 hover:text-[#155197]'
+                                : 'bg-white/10 text-white/40 hover:bg-white/20 hover:text-white'
                               }`}
                             title="Copy PIN to clipboard"
                           >
@@ -521,12 +517,12 @@ export default function AdminDashboard() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50/50 border border-amber-200/50"
+                    className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-400/20"
                   >
-                    <Shield className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-700 leading-relaxed">
+                    <Shield className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-200/80 leading-relaxed">
                       Share PINs with team members via a secure channel only. Each PIN provides
-                      upload access for 7 days. PINs cannot be recovered after creation.
+                      upload access for 48 hours. PINs cannot be recovered after creation.
                     </p>
                   </motion.div>
                 )}

@@ -1,20 +1,35 @@
-import { v4 as uuid } from 'uuid'
+import { randomInt, timingSafeEqual } from 'crypto'
 import { query } from '@/lib/db'
 import { rateLimit } from '@/lib/rateLimit'
 import { validation, createAuditLog } from '@/lib/security'
+import bcrypt from 'bcryptjs'
+
+const PIN_SALT_ROUNDS = 10
 
 function generatePin(): string {
-  // Generate 6-digit PIN using crypto for better randomness
-  return Math.floor(100000 + Math.random() * 900000).toString()
+  // NIST SP 800-63B: Use CSPRNG for authentication secrets
+  return randomInt(100000, 999999).toString()
+}
+
+function safeCompare(a: string, b: string): boolean {
+  if (!a || !b) return false
+  const bufA = Buffer.from(a, 'utf8')
+  const bufB = Buffer.from(b, 'utf8')
+  if (bufA.length !== bufB.length) {
+    // Compare against self to keep constant time, then return false
+    timingSafeEqual(bufA, bufA)
+    return false
+  }
+  return timingSafeEqual(bufA, bufB)
 }
 
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get('x-forwarded-for') || 'unknown'
-    const adminToken = req.headers.get('x-admin-token')
+    const adminToken = req.headers.get('x-admin-token') || ''
 
-    // Check if caller is admin - rate limit failed attempts
-    if (adminToken !== process.env.ADMIN_TOKEN) {
+    // Check if caller is admin - timing-safe comparison
+    if (!safeCompare(adminToken, process.env.ADMIN_TOKEN || '')) {
       const rateLimitKey = `admin-auth-fail:${ip}`
       const limit = rateLimit(rateLimitKey, {
         maxAttempts: 3,
@@ -71,13 +86,14 @@ export async function POST(req: Request) {
     }
 
     const pin = generatePin()
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    const pinHash = await bcrypt.hash(pin, PIN_SALT_ROUNDS)
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000) // 48 hours
 
     const result = await query(
       `INSERT INTO upload_sessions (pin, team_name, expires_at)
-       OUTPUT INSERTED.id, INSERTED.pin, INSERTED.team_name
-       VALUES (@pin, @teamName, @expiresAt)`,
-      { pin, teamName: teamName || 'Anonymous', expiresAt }
+       OUTPUT INSERTED.id, INSERTED.team_name
+       VALUES (@pinHash, @teamName, @expiresAt)`,
+      { pinHash, teamName: teamName || 'Anonymous', expiresAt }
     )
 
     const auditLog = createAuditLog('PIN_CREATED', req, {
@@ -85,8 +101,9 @@ export async function POST(req: Request) {
       pin: '***' + pin.slice(-2), // Log last 2 digits only for security
     })
     console.log('✅ PIN_CREATED:', auditLog)
-    
-    return Response.json(result.rows[0], {
+
+    // Return plaintext PIN only once at creation (admin gives to team verbally)
+    return Response.json({ ...result.rows[0], pin }, {
       headers: { 'Cache-Control': 'no-store' },
     })
   } catch (error) {
