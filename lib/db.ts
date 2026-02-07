@@ -224,7 +224,15 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
     return { rows: [] }
   }
   
-  // SELECT FROM photos
+  // SELECT FROM photos WHERE session_id
+  if (sqlUpper.includes('SELECT') && sqlUpper.includes('PHOTOS') && sqlUpper.includes('SESSION_ID')) {
+    const photos = mockDatabase.get('photos') || []
+    const sessionId = params?.sessionId
+    const filtered = sessionId ? photos.filter((p: any) => p.session_id === sessionId) : photos
+    return { rows: filtered }
+  }
+
+  // SELECT FROM photos (all)
   if (sqlUpper.includes('SELECT') && sqlUpper.includes('PHOTOS')) {
     const photos = mockDatabase.get('photos') || []
     return { rows: photos }

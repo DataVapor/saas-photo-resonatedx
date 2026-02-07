@@ -1,39 +1,136 @@
 'use client'
 
-import { useState } from 'react'
-import { Copy, Plus, LogOut, Lock, Key } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Copy, Plus, LogOut, Lock, Key, Shield, CheckCircle2,
+  AlertCircle, Loader2, Users, Clock, ChevronRight,
+} from 'lucide-react'
 
+/* ─── Types ──────────────────────────────────────────── */
+type Step = 'login' | 'dashboard'
+
+interface PinEntry {
+  id: string
+  pin: string
+  team_name: string
+}
+
+/* ─── Animation Variants ─────────────────────────────── */
+const pageVariants = {
+  enter: { x: 300, opacity: 0, filter: 'blur(4px)' },
+  center: {
+    x: 0,
+    opacity: 1,
+    filter: 'blur(0px)',
+    transition: { type: 'spring' as const, stiffness: 260, damping: 28 },
+  },
+  exit: { x: -300, opacity: 0, filter: 'blur(4px)', transition: { duration: 0.22 } },
+}
+
+const stagger = {
+  animate: { transition: { staggerChildren: 0.06 } },
+}
+
+const fadeUp = {
+  initial: { opacity: 0, y: 24 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring' as const, stiffness: 280, damping: 22 },
+  },
+}
+
+const popIn = {
+  initial: { scale: 0, opacity: 0 },
+  animate: {
+    scale: 1,
+    opacity: 1,
+    transition: { type: 'spring' as const, stiffness: 420, damping: 18 },
+  },
+}
+
+const cardPop = {
+  initial: { opacity: 0, scale: 0.92, y: 12 },
+  animate: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: { type: 'spring' as const, stiffness: 350, damping: 22 },
+  },
+}
+
+/* ─── Floating Particles ─────────────────────────────── */
+function Particles() {
+  const [ready, setReady] = useState(false)
+  useEffect(() => setReady(true), [])
+  if (!ready) return null
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {Array.from({ length: 25 }, (_, i) => {
+        const size = 2 + (i * 7) % 5
+        return (
+          <div
+            key={i}
+            className="absolute rounded-full bg-white/[0.06] animate-float"
+            style={{
+              width: size,
+              height: size,
+              left: `${(i * 41) % 100}%`,
+              top: `${(i * 59) % 100}%`,
+              animationDelay: `${(i * 0.35) % 10}s`,
+              animationDuration: `${9 + (i * 0.5) % 7}s`,
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+/* ─── Main Admin Page ────────────────────────────────── */
 export default function AdminDashboard() {
+  const [step, setStep] = useState<Step>('login')
   const [adminToken, setAdminToken] = useState('')
   const [storedToken, setStoredToken] = useState('')
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [teamName, setTeamName] = useState('')
-  const [pins, setPins] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
 
+  // Dashboard state
+  const [teamName, setTeamName] = useState('')
+  const [pins, setPins] = useState<PinEntry[]>([])
+  const [loading, setLoading] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [justCreated, setJustCreated] = useState<string | null>(null)
+
+  const tokenRef = useRef<HTMLInputElement>(null)
+  const teamRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (step === 'login') tokenRef.current?.focus()
+    if (step === 'dashboard') teamRef.current?.focus()
+  }, [step])
+
+  /* ───── Login ──────────────────────────────── */
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!adminToken) {
+    if (!adminToken.trim()) {
       setError('Admin token is required')
       return
     }
     setStoredToken(adminToken)
-    setIsAuthenticated(true)
+    setStep('dashboard')
     setError('')
     setAdminToken('')
   }
 
+  /* ───── Create PIN ─────────────────────────── */
   const createPin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError('')
-    setSuccess('')
+    setCreateError('')
+    setJustCreated(null)
 
     try {
       const res = await fetch('/api/auth/create-session', {
@@ -42,7 +139,7 @@ export default function AdminDashboard() {
           'Content-Type': 'application/json',
           'x-admin-token': storedToken,
         },
-        body: JSON.stringify({ teamName: teamName || 'Team ' + Date.now() }),
+        body: JSON.stringify({ teamName: teamName.trim() || 'Team ' + Date.now() }),
       })
 
       if (!res.ok) {
@@ -51,191 +148,392 @@ export default function AdminDashboard() {
       }
 
       const data = await res.json()
-      setPins([data, ...pins])
-      setSuccess(`PIN created: ${data.pin}`)
+      setPins((prev) => [data, ...prev])
+      setJustCreated(data.id)
       setTeamName('')
+      teamRef.current?.focus()
+
+      // Auto-clear highlight after 4 seconds
+      setTimeout(() => setJustCreated(null), 4000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create PIN')
+      setCreateError(err instanceof Error ? err.message : 'Failed to create PIN')
     } finally {
       setLoading(false)
     }
   }
 
-  const copyPin = (pin: string) => {
-    navigator.clipboard.writeText(pin)
-    setSuccess(`Copied PIN: ${pin}`)
-    setTimeout(() => setSuccess(''), 2000)
+  /* ───── Copy PIN ───────────────────────────── */
+  const copyPin = async (pin: string, id: string) => {
+    await navigator.clipboard.writeText(pin)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-aspr-blue-dark to-aspr-blue-primary flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">ASPR Admin</CardTitle>
-            <CardDescription>PIN Management Portal</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="token" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Admin Token
-                </label>
-                <Input
-                  id="token"
-                  type="password"
-                  value={adminToken}
-                  onChange={(e) => setAdminToken(e.target.value)}
-                  placeholder="Enter ADMIN_TOKEN from .env.local"
-                />
-              </div>
-
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              <Button type="submit" className="w-full" size="lg">
-                Login as Admin
-              </Button>
-            </form>
-
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <p className="text-xs text-gray-600 text-center">
-                <strong>Local Testing:</strong> Use the ADMIN_TOKEN value from your .env.local file.
-              </p>
-              <p className="text-xs text-gray-500 text-center mt-2">
-                <code className="bg-gray-100 px-2 py-1 rounded">ADMIN_TOKEN=your-secret-token</code>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+  /* ───── Logout ─────────────────────────────── */
+  const logout = () => {
+    setStoredToken('')
+    setPins([])
+    setStep('login')
   }
 
+  /* ═══════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════ */
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-aspr-blue-dark to-aspr-blue-primary text-white p-4 sticky top-0 shadow-md">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Key className="w-6 h-6" />
-            <h1 className="text-2xl font-bold">PIN Management</h1>
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-700 ${
+      step === 'login'
+        ? 'bg-gradient-to-br from-[#031a36] via-[#062e61] to-[#155197]'
+        : 'bg-gradient-to-b from-slate-50 to-white'
+    }`}>
+      {step === 'login' && <Particles />}
+
+      {/* ─── Dashboard header ─── */}
+      {step === 'dashboard' && (
+        <motion.header
+          initial={{ y: -64 }}
+          animate={{ y: 0 }}
+          transition={{ type: 'spring' as const, stiffness: 300, damping: 30 }}
+          className="sticky top-0 z-50 bg-gradient-to-r from-[#062e61] to-[#155197] text-white px-4 py-3 shadow-2xl shadow-[#062e61]/30"
+        >
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/aspr-logo-white.png" alt="ASPR" className="h-8 w-auto" />
+              <div className="h-5 w-px bg-white/25" />
+              <span className="font-display text-lg tracking-wide uppercase">PIN Management</span>
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition"
+            >
+              <LogOut className="w-4 h-4" /> Logout
+            </button>
           </div>
-          <Button
-            variant="ghost"
-            onClick={() => { setIsAuthenticated(false); setStoredToken('') }}
-            className="text-white hover:bg-white/20"
+        </motion.header>
+      )}
+
+      <AnimatePresence mode="wait">
+        {/* ═══ LOGIN STEP ═══ */}
+        {step === 'login' && (
+          <motion.div
+            key="login"
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
-        {/* Create PIN Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New PIN</CardTitle>
-            <CardDescription>Generate a new PIN for field teams</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={createPin} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="teamName" className="text-sm font-semibold text-gray-700">
-                  Team Name (Optional)
-                </label>
-                <Input
-                  id="teamName"
-                  type="text"
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value)}
-                  placeholder="e.g., Team A, Urban Search & Rescue, Medical Team 1"
+            <motion.div
+              variants={stagger}
+              initial="initial"
+              animate="animate"
+              className="text-center space-y-8 w-full max-w-sm"
+            >
+              {/* HHS + ASPR logos */}
+              <motion.div variants={fadeUp}>
+                <img
+                  src="/hhs_longlogo_white.png"
+                  alt="U.S. Department of Health and Human Services"
+                  className="h-20 md:h-24 mx-auto opacity-50"
                 />
-                <p className="text-xs text-gray-500">Leave blank for auto-generated name</p>
-              </div>
+              </motion.div>
 
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+              <motion.div variants={popIn}>
+                <img
+                  src="/aspr-logo-white.png"
+                  alt="ASPR"
+                  className="h-16 mx-auto drop-shadow-[0_0_30px_rgba(21,81,151,0.5)]"
+                />
+              </motion.div>
 
-              {success && (
-                <Alert variant="success">
-                  <AlertDescription>{success}</AlertDescription>
-                </Alert>
-              )}
+              {/* Icon */}
+              <motion.div variants={popIn}>
+                <div className="w-20 h-20 rounded-3xl bg-white/[0.07] backdrop-blur-sm border border-white/10 flex items-center justify-center mx-auto">
+                  <Key className="w-9 h-9 text-blue-300/80" />
+                </div>
+              </motion.div>
 
-              <Button type="submit" disabled={loading} className="w-full" size="lg">
-                <Plus className="w-4 h-4 mr-2" />
-                {loading ? 'Creating PIN...' : 'Create PIN'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+              {/* Title */}
+              <motion.div variants={fadeUp} className="space-y-2">
+                <h1 className="text-4xl md:text-5xl font-display text-white tracking-wide uppercase">
+                  Admin Portal
+                </h1>
+                <p className="text-sm text-blue-200/50">
+                  PIN management for field team access
+                </p>
+              </motion.div>
 
-        {/* PINs List */}
-        {pins.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Active PINs</CardTitle>
-              <CardDescription>{pins.length} PIN(s) created</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pins.map((pin) => (
-                  <div
-                    key={pin.id}
-                    className="border border-gray-200 rounded-lg p-4 flex items-center justify-between hover:border-aspr-blue-primary transition"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-aspr-blue-light px-4 py-2 rounded font-mono font-bold text-aspr-blue-dark text-lg">
-                          {pin.pin}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">{pin.team_name}</p>
-                          <p className="text-xs text-gray-500">
-                            ID: {pin.id.slice(0, 8)}...
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+              {/* Login form */}
+              <motion.form variants={fadeUp} onSubmit={handleLogin} className="space-y-4">
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                  <input
+                    ref={tokenRef}
+                    type="password"
+                    value={adminToken}
+                    onChange={(e) => { setAdminToken(e.target.value); setError('') }}
+                    placeholder="Enter admin token"
+                    className="w-full pl-11 pr-4 py-4 rounded-2xl bg-white/[0.07] backdrop-blur-sm
+                      border-2 border-white/15 text-white placeholder-white/30 outline-none
+                      focus:border-blue-400 focus:ring-2 focus:ring-blue-400/25 transition-all"
+                  />
+                </div>
 
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => copyPin(pin.pin)}
-                      title="Copy PIN to clipboard"
+                <AnimatePresence>
+                  {error && (
+                    <motion.p
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="flex items-center gap-2 justify-center text-red-400 text-sm"
                     >
-                      <Copy className="w-4 h-4" />
-                    </Button>
+                      <AlertCircle className="w-4 h-4" />
+                      {error}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+
+                <motion.button
+                  type="submit"
+                  whileHover={{ scale: 1.04, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full inline-flex items-center justify-center gap-3
+                    bg-white text-[#062e61] py-4 rounded-2xl
+                    font-bold text-lg shadow-xl shadow-black/20 transition-shadow"
+                >
+                  Authenticate
+                  <ChevronRight className="w-5 h-5" />
+                </motion.button>
+              </motion.form>
+
+              {/* Footer */}
+              <motion.div variants={fadeUp} className="pt-4 space-y-1 text-xs text-blue-300/25">
+                <p className="font-semibold">Administration for Strategic Preparedness and Response</p>
+                <p>U.S. Department of Health and Human Services</p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ═══ DASHBOARD STEP ═══ */}
+        {step === 'dashboard' && (
+          <motion.div
+            key="dashboard"
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="min-h-[calc(100vh-56px)]"
+          >
+            <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+              {/* ─── Create PIN section ─── */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden"
+              >
+                <div className="bg-gradient-to-r from-[#062e61] to-[#155197] px-6 py-5">
+                  <h2 className="font-display text-2xl tracking-wide uppercase text-white flex items-center gap-3">
+                    <Plus className="w-5 h-5" />
+                    Create New PIN
+                  </h2>
+                  <p className="text-sm text-blue-200/50 mt-1">
+                    Generate access PINs for disaster response field teams
+                  </p>
+                </div>
+
+                <form onSubmit={createPin} className="p-6 space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="teamName" className="text-sm font-semibold text-slate-600">
+                      Team Name
+                    </label>
+                    <input
+                      ref={teamRef}
+                      id="teamName"
+                      type="text"
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      placeholder="e.g., Urban Search & Rescue, Medical Team 1"
+                      className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-white
+                        focus:border-[#155197] focus:ring-2 focus:ring-[#155197]/15
+                        outline-none transition text-slate-800 text-base"
+                    />
+                    <p className="text-xs text-slate-400">Leave blank for auto-generated name</p>
                   </div>
-                ))}
-              </div>
 
-              <Alert className="mt-4">
-                <AlertDescription className="text-xs">
-                  Click the copy icon to copy PIN to clipboard. Share with team members via secure channel. PINs expire after 7 days.
-                </AlertDescription>
-              </Alert>
-            </CardContent>
-          </Card>
-        )}
+                  <AnimatePresence>
+                    {createError && (
+                      <motion.p
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-2 text-red-500 text-sm"
+                      >
+                        <AlertCircle className="w-4 h-4" />
+                        {createError}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
 
-        {pins.length === 0 && !loading && (
-          <Alert variant="success" className="text-center">
-            <AlertDescription>
-              Create a PIN above to get started.
-            </AlertDescription>
-          </Alert>
+                  <motion.button
+                    type="submit"
+                    disabled={loading}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#062e61] to-[#155197]
+                      text-white font-semibold text-lg shadow-lg shadow-[#062e61]/20
+                      flex items-center justify-center gap-2
+                      disabled:opacity-60 disabled:cursor-not-allowed transition"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Creating PIN...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5" />
+                        Generate PIN
+                      </>
+                    )}
+                  </motion.button>
+                </form>
+              </motion.div>
+
+              {/* ─── Active PINs ─── */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-xl tracking-wide uppercase text-slate-700 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-[#155197]" />
+                    Active PINs
+                  </h2>
+                  {pins.length > 0 && (
+                    <span className="text-xs font-semibold bg-[#155197]/10 text-[#155197] px-3 py-1 rounded-full">
+                      {pins.length} PIN{pins.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+
+                {/* Empty state */}
+                {pins.length === 0 && !loading && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center py-16 gap-3"
+                  >
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center">
+                      <Key className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <p className="text-slate-400 font-medium">No PINs created yet</p>
+                    <p className="text-xs text-slate-300">Create a PIN above to get started</p>
+                  </motion.div>
+                )}
+
+                {/* PIN cards */}
+                <motion.div variants={stagger} initial="initial" animate="animate" className="space-y-3">
+                  <AnimatePresence>
+                    {pins.map((pin) => (
+                      <motion.div
+                        key={pin.id}
+                        variants={cardPop}
+                        layout
+                        className={`bg-white rounded-2xl border overflow-hidden
+                          transition-all duration-500 shadow-sm hover:shadow-md
+                          ${justCreated === pin.id
+                            ? 'border-emerald-300 ring-2 ring-emerald-400/20 shadow-emerald-100'
+                            : 'border-slate-100'
+                          }`}
+                      >
+                        <div className="p-4 flex items-center gap-4">
+                          {/* PIN display */}
+                          <div className="relative">
+                            <div className={`px-5 py-3 rounded-xl font-mono font-bold text-xl tracking-[0.2em]
+                              transition-colors duration-500
+                              ${justCreated === pin.id
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-slate-50 text-[#062e61]'
+                              }`}>
+                              {pin.pin}
+                            </div>
+                            {justCreated === pin.id && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500
+                                  flex items-center justify-center"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                              </motion.div>
+                            )}
+                          </div>
+
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-slate-800 truncate">
+                              {pin.team_name}
+                            </p>
+                            <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                              <Clock className="w-3 h-3" />
+                              Expires in 7 days
+                            </p>
+                          </div>
+
+                          {/* Copy button */}
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.08 }}
+                            whileTap={{ scale: 0.92 }}
+                            onClick={() => copyPin(pin.pin, pin.id)}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all
+                              ${copiedId === pin.id
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-slate-50 text-slate-400 hover:bg-[#155197]/10 hover:text-[#155197]'
+                              }`}
+                            title="Copy PIN to clipboard"
+                          >
+                            {copiedId === pin.id ? (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring' as const, stiffness: 500, damping: 15 }}
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                              </motion.div>
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </motion.div>
+
+                {/* Security note */}
+                {pins.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-start gap-3 p-4 rounded-2xl bg-amber-50/50 border border-amber-200/50"
+                  >
+                    <Shield className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 leading-relaxed">
+                      Share PINs with team members via a secure channel only. Each PIN provides
+                      upload access for 7 days. PINs cannot be recovered after creation.
+                    </p>
+                  </motion.div>
+                )}
+              </motion.div>
+            </div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   )
 }

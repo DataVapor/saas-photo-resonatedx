@@ -4,6 +4,11 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactStrictMode: true,
 
+  // Use system TLS certs (required for HHS proxy/network)
+  experimental: {
+    turbopackUseSystemTlsCerts: true,
+  },
+
   // Security Headers - OWASP & CIS Compliance
   async headers() {
     return [
@@ -31,7 +36,7 @@ const nextConfig: NextConfig = {
           // CSP - Content Security Policy
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; img-src 'self' https: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; frame-ancestors 'none';",
+            value: "default-src 'self'; img-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-ancestors 'none';",
           },
         ],
       },

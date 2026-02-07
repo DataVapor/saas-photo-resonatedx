@@ -1,135 +1,1151 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle, Lock } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Camera, MapPin, LogOut, Shield, ChevronRight,
+  Upload, CheckCircle2, X, Loader2,
+  AlertCircle, ImagePlus, Send, RotateCcw, Locate,
+  Image as ImageIcon,
+} from 'lucide-react'
 
-export default function LoginPage() {
+/* ─── Types ──────────────────────────────────────────── */
+type Step = 'welcome' | 'pin' | 'photos' | 'metadata' | 'uploading' | 'success'
+
+interface PhotoFile {
+  file: File
+  preview: string
+  id: string
+}
+
+const STEP_ORDER: Step[] = ['welcome', 'pin', 'photos', 'metadata', 'uploading', 'success']
+
+/* ─── Animation Variants ─────────────────────────────── */
+const pageVariants = {
+  enter: (d: number) => ({
+    x: d > 0 ? 300 : -300,
+    opacity: 0,
+    filter: 'blur(4px)',
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    filter: 'blur(0px)',
+    transition: { type: 'spring' as const, stiffness: 260, damping: 28 },
+  },
+  exit: (d: number) => ({
+    x: d < 0 ? 300 : -300,
+    opacity: 0,
+    filter: 'blur(4px)',
+    transition: { duration: 0.22 },
+  }),
+}
+
+const stagger = {
+  animate: { transition: { staggerChildren: 0.07 } },
+}
+
+const fadeUp = {
+  initial: { opacity: 0, y: 28 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring' as const, stiffness: 280, damping: 22 },
+  },
+}
+
+const popIn = {
+  initial: { scale: 0, opacity: 0 },
+  animate: {
+    scale: 1,
+    opacity: 1,
+    transition: { type: 'spring' as const, stiffness: 420, damping: 18 },
+  },
+}
+
+/* ─── Floating Particles ─────────────────────────────── */
+function Particles() {
+  const [ready, setReady] = useState(false)
+  useEffect(() => setReady(true), [])
+  if (!ready) return null
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {Array.from({ length: 35 }, (_, i) => {
+        const size = 2 + (i * 7) % 6
+        return (
+          <div
+            key={i}
+            className="absolute rounded-full bg-white/[0.07] animate-float"
+            style={{
+              width: size,
+              height: size,
+              left: `${(i * 37) % 100}%`,
+              top: `${(i * 53) % 100}%`,
+              animationDelay: `${(i * 0.3) % 10}s`,
+              animationDuration: `${8 + (i * 0.4) % 8}s`,
+            }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+/* ─── Step Dots ──────────────────────────────────────── */
+function StepDots({ current }: { current: Step }) {
+  const idx = STEP_ORDER.indexOf(current)
+  return (
+    <div className="flex gap-2 justify-center">
+      {STEP_ORDER.map((s, i) => (
+        <motion.div
+          key={s}
+          layout
+          className={`h-1.5 rounded-full transition-all duration-500 ${
+            i === idx
+              ? 'bg-white w-8'
+              : i < idx
+                ? 'bg-white/50 w-2'
+                : 'bg-white/15 w-2'
+          }`}
+        />
+      ))}
+    </div>
+  )
+}
+
+/* ─── Main Wizard ────────────────────────────────────── */
+export default function PhotoUploadWizard() {
   const router = useRouter()
-  const [pin, setPin] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [step, setStep] = useState<Step>('welcome')
+  const [direction, setDirection] = useState(1)
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Auth state
+  const [pin, setPin] = useState<string[]>(Array(6).fill(''))
+  const [token, setToken] = useState('')
+  const [teamName, setTeamName] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+  const [pinValid, setPinValid] = useState(false)
+
+  // Photos
+  const [photos, setPhotos] = useState<PhotoFile[]>([])
+  const [dragOver, setDragOver] = useState(false)
+
+  // Metadata
+  const [notes, setNotes] = useState('')
+  const [incidentId, setIncidentId] = useState('')
+  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationName, setLocationName] = useState('')
+  const [locating, setLocating] = useState(false)
+
+  // Upload
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadedCount, setUploadedCount] = useState(0)
+  const [uploadError, setUploadError] = useState('')
+  const [lastBatchSize, setLastBatchSize] = useState(0)
+
+  // Refs
+  const pinRefs = useRef<(HTMLInputElement | null)[]>([])
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  // Restore session
+  useEffect(() => {
+    const t = sessionStorage.getItem('aspr_token')
+    const team = sessionStorage.getItem('aspr_team')
+    if (t) {
+      setToken(t)
+      setTeamName(team || 'Anonymous')
+      setStep('photos')
+    }
+  }, [])
+
+  const goTo = useCallback(
+    (next: Step) => {
+      setDirection(STEP_ORDER.indexOf(next) > STEP_ORDER.indexOf(step) ? 1 : -1)
+      setStep(next)
+    },
+    [step],
+  )
+
+  /* ───── PIN logic ──────────────────────────── */
+  const handlePinInput = (i: number, val: string) => {
+    if (!/^\d*$/.test(val)) return
+    const next = [...pin]
+    next[i] = val.slice(-1)
+    setPin(next)
+    setAuthError('')
+    if (val && i < 5) pinRefs.current[i + 1]?.focus()
+    if (val && i === 5 && next.every(Boolean)) submitPin(next.join(''))
+  }
+
+  const handlePinKey = (i: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !pin[i] && i > 0) pinRefs.current[i - 1]?.focus()
+  }
+
+  const handlePinPaste = (e: React.ClipboardEvent) => {
     e.preventDefault()
-    setLoading(true)
-    setError('')
+    const p = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    if (p.length === 6) {
+      setPin(p.split(''))
+      pinRefs.current[5]?.focus()
+      submitPin(p)
+    }
+  }
 
+  const submitPin = async (pinStr: string) => {
+    setAuthLoading(true)
+    setAuthError('')
     try {
       const res = await fetch('/api/auth/validate-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin }),
+        body: JSON.stringify({ pin: pinStr }),
       })
-
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Invalid PIN')
+        const d = await res.json()
+        throw new Error(d.error || 'Invalid PIN')
       }
-
-      const { token, sessionId, teamName } = await res.json()
-
-      sessionStorage.setItem('aspr_token', token)
+      const { token: t, sessionId, teamName: team } = await res.json()
+      sessionStorage.setItem('aspr_token', t)
       sessionStorage.setItem('aspr_session_id', sessionId)
-      sessionStorage.setItem('aspr_team', teamName)
-
-      router.push('/upload')
+      sessionStorage.setItem('aspr_team', team)
+      setToken(t)
+      setTeamName(team)
+      setPinValid(true)
+      setTimeout(() => goTo('photos'), 900)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setAuthError(err instanceof Error ? err.message : 'Verification failed')
+      setPin(Array(6).fill(''))
+      setTimeout(() => pinRefs.current[0]?.focus(), 120)
     } finally {
-      setLoading(false)
+      setAuthLoading(false)
     }
   }
 
+  /* ───── Photo logic ────────────────────────── */
+  const addPhotos = useCallback((files: FileList | File[]) => {
+    const arr: PhotoFile[] = []
+    Array.from(files).forEach((f) => {
+      if (!f.type.startsWith('image/') || f.size > 50 * 1024 * 1024) return
+      arr.push({
+        file: f,
+        preview: URL.createObjectURL(f),
+        id: Math.random().toString(36).slice(2, 11),
+      })
+    })
+    setPhotos((prev) => [...prev, ...arr])
+  }, [])
+
+  const removePhoto = (id: string) => {
+    setPhotos((prev) => {
+      const r = prev.find((p) => p.id === id)
+      if (r) URL.revokeObjectURL(r.preview)
+      return prev.filter((p) => p.id !== id)
+    })
+  }
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setDragOver(false)
+      if (e.dataTransfer.files) addPhotos(e.dataTransfer.files)
+    },
+    [addPhotos],
+  )
+
+  /* ───── Location ───────────────────────────── */
+  const getLocation = () => {
+    if (!navigator.geolocation) return
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLocationName(
+          `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
+        )
+        setLocating(false)
+      },
+      () => setLocating(false),
+    )
+  }
+
+  /* ───── Upload ─────────────────────────────── */
+  const handleUpload = async () => {
+    setLastBatchSize(photos.length)
+    goTo('uploading')
+    setUploadProgress(0)
+    setUploadedCount(0)
+    setUploadError('')
+
+    try {
+      for (let i = 0; i < photos.length; i++) {
+        const fd = new FormData()
+        fd.append('photo', photos[i].file)
+        if (notes) fd.append('notes', notes)
+        if (incidentId) fd.append('incidentId', incidentId)
+        if (location) {
+          fd.append('latitude', location.lat.toString())
+          fd.append('longitude', location.lng.toString())
+        }
+        if (locationName) fd.append('locationName', locationName)
+
+        const res = await fetch('/api/photos/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        })
+        if (!res.ok) {
+          const d = await res.json()
+          throw new Error(d.error || `Failed: ${photos[i].file.name}`)
+        }
+        setUploadedCount(i + 1)
+        setUploadProgress(Math.round(((i + 1) / photos.length) * 100))
+      }
+
+      photos.forEach((p) => URL.revokeObjectURL(p.preview))
+      setTimeout(() => goTo('success'), 600)
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+    }
+  }
+
+  const resetForMore = () => {
+    setPhotos([])
+    setNotes('')
+    setIncidentId('')
+    setLocation(null)
+    setLocationName('')
+    setUploadProgress(0)
+    setUploadedCount(0)
+    setUploadError('')
+    goTo('photos')
+  }
+
+  const logout = () => {
+    sessionStorage.clear()
+    setToken('')
+    setTeamName('')
+    setPin(Array(6).fill(''))
+    setPinValid(false)
+    goTo('welcome')
+  }
+
+  /* ───── Derived ────────────────────────────── */
+  const isDark = step === 'welcome' || step === 'pin' || step === 'uploading' || step === 'success'
+  const RING_R = 52
+  const RING_CIRC = 2 * Math.PI * RING_R
+
+  /* ═══════════════════════════════════════════════════════
+     RENDER
+     ═══════════════════════════════════════════════════════ */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-aspr-blue-dark to-aspr-blue-primary flex flex-col items-center justify-center p-4">
-      {/* HHS Logo */}
-      <div className="mb-8">
-        <a href="https://www.hhs.gov" target="_blank" rel="noopener noreferrer" title="HHS Official">
-          <img
-            src="/hhs_longlogo_white.png"
-            alt="HHS - U.S. Department of Health and Human Services"
-            style={{ height: '100px', width: 'auto' }}
-            className="drop-shadow-lg hover:opacity-80 transition"
-          />
-        </a>
-      </div>
+    <div
+      className={`min-h-screen relative overflow-hidden transition-colors duration-700 ${
+        isDark
+          ? 'bg-gradient-to-br from-[#031a36] via-[#062e61] to-[#155197]'
+          : 'bg-gradient-to-b from-slate-50 to-white'
+      }`}
+    >
+      {isDark && <Particles />}
 
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-4">
-          {/* Logo */}
-          <div className="flex items-center justify-center px-4">
-            <a href="https://aspr.hhs.gov" target="_blank" rel="noopener noreferrer" title="ASPR">
-              <img
-                src="/aspr-logo-blue.png"
-                alt="ASPR Logo"
-                style={{ height: '68px', width: 'auto' }}
-                className="hover:opacity-80 transition"
-              />
-            </a>
-          </div>
-
-          <div>
-            <CardTitle className="text-3xl">ASPR Photo Repository</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Secure photo upload for disaster response
-            </CardDescription>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Authentication Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="pin" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Lock className="w-4 h-4" />
-                Enter PIN
-              </label>
-              <Input
-                id="pin"
-                type="number"
-                inputMode="numeric"
-                maxLength={6}
-                min="0"
-                max="999999"
-                value={pin}
-                onChange={(e) => setPin(e.target.value.slice(0, 6).replace(/[^0-9]/g, ''))}
-                placeholder="000000"
-                autoComplete="off"
-                className="text-center text-2xl tracking-widest font-mono"
-              />
-              <p className="text-xs text-gray-500">
-                6-digit PIN provided by your incident commander
-              </p>
+      {/* ─── Branded header (light steps) ─── */}
+      {(step === 'photos' || step === 'metadata') && (
+        <motion.header
+          initial={{ y: -64 }}
+          animate={{ y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="sticky top-0 z-50 bg-gradient-to-r from-[#062e61] to-[#155197] text-white px-4 py-3 shadow-2xl shadow-[#062e61]/30"
+        >
+          <div className="max-w-2xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src="/aspr-logo-white.png" alt="ASPR" className="h-8 w-auto" />
+              <div className="h-5 w-px bg-white/25" />
+              <span className="text-sm font-medium text-white/70">Team: {teamName}</span>
             </div>
-
-            <Button
-              type="submit"
-              disabled={pin.length !== 6 || loading}
-              className="w-full h-11 text-base"
-              size="lg"
-            >
-              {loading ? 'Verifying PIN...' : 'Access Portal'}
-            </Button>
-          </form>
-
-          <div className="pt-4 border-t border-gray-200 space-y-1 text-xs text-gray-600">
-            <p className="font-semibold">Administration for Strategic Preparedness and Response</p>
-            <p>U.S. Department of Health and Human Services</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.push('/gallery')}
+                className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition"
+              >
+                <ImageIcon className="w-4 h-4" /> Gallery
+              </button>
+              <button
+                type="button"
+                onClick={logout}
+                className="flex items-center gap-1.5 text-sm text-white/60 hover:text-white transition"
+              >
+                <LogOut className="w-4 h-4" /> Logout
+              </button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </motion.header>
+      )}
+
+      {/* ─── Step content ─── */}
+      <AnimatePresence mode="wait" custom={direction}>
+        {/* ═══ WELCOME ═══ */}
+        {step === 'welcome' && (
+          <motion.div
+            key="welcome"
+            custom={direction}
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
+          >
+            <motion.div
+              variants={stagger}
+              initial="initial"
+              animate="animate"
+              className="text-center space-y-10"
+            >
+              {/* HHS */}
+              <motion.div variants={fadeUp}>
+                <img
+                  src="/hhs_longlogo_white.png"
+                  alt="U.S. Department of Health and Human Services"
+                  className="h-24 md:h-28 mx-auto opacity-60"
+                />
+              </motion.div>
+
+              {/* ASPR logo */}
+              <motion.div variants={popIn}>
+                <img
+                  src="/aspr-logo-white.png"
+                  alt="ASPR"
+                  className="h-24 mx-auto drop-shadow-[0_0_40px_rgba(21,81,151,0.6)]"
+                />
+              </motion.div>
+
+              {/* Title */}
+              <motion.div variants={fadeUp} className="space-y-3">
+                <h1 className="text-5xl md:text-7xl font-display text-white tracking-wide leading-tight uppercase">
+                  Photo Repository
+                </h1>
+                <p className="text-lg md:text-xl text-blue-200/60 max-w-lg mx-auto leading-relaxed">
+                  Secure photo upload for disaster response and emergency documentation
+                </p>
+              </motion.div>
+
+              {/* CTA */}
+              <motion.div variants={fadeUp}>
+                <motion.button
+                  onClick={() => goTo('pin')}
+                  whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+                  whileTap={{ scale: 0.97 }}
+                  className="inline-flex items-center gap-3 bg-white text-[#062e61] px-10 py-5 rounded-2xl font-bold text-lg shadow-xl shadow-black/20 transition-shadow"
+                >
+                  Get Started
+                  <ChevronRight className="w-5 h-5" />
+                </motion.button>
+              </motion.div>
+
+              {/* Footer */}
+              <motion.div variants={fadeUp} className="pt-6 space-y-1 text-xs text-blue-300/30">
+                <p className="font-semibold">
+                  Administration for Strategic Preparedness and Response
+                </p>
+                <p>U.S. Department of Health and Human Services</p>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ═══ PIN ═══ */}
+        {step === 'pin' && (
+          <motion.div
+            key="pin"
+            custom={direction}
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
+          >
+            <motion.div
+              variants={stagger}
+              initial="initial"
+              animate="animate"
+              className="text-center space-y-8 w-full max-w-sm"
+            >
+              {/* Back */}
+              <motion.button
+                variants={fadeUp}
+                onClick={() => goTo('welcome')}
+                className="text-blue-300/50 hover:text-white transition text-sm"
+              >
+                &larr; Back
+              </motion.button>
+
+              {/* Icon / Success checkmark */}
+              <motion.div variants={popIn}>
+                {pinValid ? (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 12 }}
+                  >
+                    <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto drop-shadow-[0_0_20px_rgba(52,211,153,0.5)]" />
+                  </motion.div>
+                ) : (
+                  <div className="w-20 h-20 rounded-3xl bg-white/[0.07] backdrop-blur-sm border border-white/10 flex items-center justify-center mx-auto">
+                    <Shield className="w-9 h-9 text-blue-300/80" />
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Title */}
+              <motion.div variants={fadeUp} className="space-y-2">
+                <h2 className="text-4xl font-display text-white tracking-wide uppercase">
+                  {pinValid ? `Welcome, ${teamName}` : 'Enter Access PIN'}
+                </h2>
+                {!pinValid && (
+                  <p className="text-sm text-blue-200/50">
+                    6-digit code from your incident commander
+                  </p>
+                )}
+              </motion.div>
+
+              {/* PIN boxes */}
+              {!pinValid && (
+                <motion.div
+                  variants={fadeUp}
+                  className="flex gap-3 justify-center"
+                  onPaste={handlePinPaste}
+                >
+                  {pin.map((digit, i) => (
+                    <motion.input
+                      key={i}
+                      ref={(el) => {
+                        pinRefs.current[i] = el
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handlePinInput(i, e.target.value)}
+                      onKeyDown={(e) => handlePinKey(i, e)}
+                      animate={authError ? { x: [0, -10, 10, -10, 10, 0] } : {}}
+                      transition={{ duration: 0.4 }}
+                      disabled={authLoading}
+                      autoFocus={i === 0}
+                      className={`w-12 h-16 rounded-xl text-center text-2xl font-bold
+                        bg-white/[0.07] backdrop-blur-sm border-2 text-white outline-none
+                        transition-all duration-200
+                        ${digit ? 'border-blue-400 bg-blue-400/10' : 'border-white/15'}
+                        focus:border-blue-400 focus:ring-2 focus:ring-blue-400/25
+                        disabled:opacity-50`}
+                    />
+                  ))}
+                </motion.div>
+              )}
+
+              {/* Error */}
+              <AnimatePresence>
+                {authError && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-2 justify-center text-red-400 text-sm"
+                  >
+                    <AlertCircle className="w-4 h-4" />
+                    {authError}
+                  </motion.p>
+                )}
+              </AnimatePresence>
+
+              {/* Loading */}
+              {authLoading && (
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center gap-2 justify-center text-blue-300/80"
+                >
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Verifying&hellip;
+                </motion.p>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* ═══ PHOTOS ═══ */}
+        {step === 'photos' && (
+          <motion.div
+            key="photos"
+            custom={direction}
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="min-h-[calc(100vh-56px)]"
+          >
+            <div className="max-w-2xl mx-auto w-full px-4 py-8 space-y-6">
+              {/* Drop zone */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onDragOver={(e) => {
+                  e.preventDefault()
+                  setDragOver(true)
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={onDrop}
+                onClick={() => fileRef.current?.click()}
+                className={`relative cursor-pointer rounded-3xl border-2 border-dashed p-14 text-center
+                  transition-all duration-300 ${
+                    dragOver
+                      ? 'border-[#155197] bg-[#155197]/10 scale-[1.02] shadow-xl shadow-[#155197]/10'
+                      : 'border-slate-200 hover:border-[#155197]/40 hover:bg-slate-50/50'
+                  }`}
+              >
+                <motion.div
+                  animate={
+                    dragOver
+                      ? { scale: 1.15, rotate: 8, y: -4 }
+                      : { scale: 1, rotate: 0, y: 0 }
+                  }
+                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                >
+                  <ImagePlus className="w-14 h-14 mx-auto text-[#155197]/30 mb-4" />
+                </motion.div>
+                <p className="text-lg font-semibold text-slate-700">
+                  {dragOver ? 'Drop photos here' : 'Tap to select photos'}
+                </p>
+                <p className="text-sm text-slate-400 mt-1">
+                  or drag &amp; drop &bull; JPG, PNG, HEIC &bull; Max 50 MB
+                </p>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  aria-label="Select photos to upload"
+                  onChange={(e) => {
+                    if (e.target.files) addPhotos(e.target.files)
+                    e.target.value = ''
+                  }}
+                  className="hidden"
+                />
+              </motion.div>
+
+              {/* Camera button */}
+              <motion.button
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  const input = document.createElement('input')
+                  input.type = 'file'
+                  input.accept = 'image/*'
+                  input.capture = 'environment'
+                  input.onchange = (e) => {
+                    const files = (e.target as HTMLInputElement).files
+                    if (files) addPhotos(files)
+                  }
+                  input.click()
+                }}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl
+                  bg-[#062e61] text-white font-semibold text-lg
+                  hover:bg-[#0a3d7a] active:bg-[#155197] transition-colors shadow-lg shadow-[#062e61]/20"
+              >
+                <Camera className="w-5 h-5" />
+                Take Photo
+              </motion.button>
+
+              {/* Photo grid */}
+              <AnimatePresence>
+                {photos.length > 0 && (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-5"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+                        {photos.length} photo{photos.length !== 1 ? 's' : ''} selected
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          photos.forEach((p) => URL.revokeObjectURL(p.preview))
+                          setPhotos([])
+                        }}
+                        className="text-xs text-red-500/70 hover:text-red-600 transition font-medium"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      <AnimatePresence>
+                        {photos.map((photo, i) => (
+                          <motion.div
+                            key={photo.id}
+                            layout
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            transition={{
+                              delay: i * 0.04,
+                              type: 'spring',
+                              stiffness: 400,
+                              damping: 22,
+                            }}
+                            className="relative aspect-square rounded-2xl overflow-hidden group shadow-md"
+                          >
+                            <img
+                              src={photo.preview}
+                              alt={photo.file.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <motion.button
+                              whileHover={{ scale: 1.15 }}
+                              whileTap={{ scale: 0.85 }}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removePhoto(photo.id)
+                              }}
+                              className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full
+                                bg-black/60 text-white flex items-center justify-center
+                                opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </motion.button>
+                            <div className="absolute bottom-0 inset-x-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <p className="text-[10px] text-white/90 truncate bg-black/40 backdrop-blur-sm rounded px-1.5 py-0.5">
+                                {photo.file.name}
+                              </p>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Continue */}
+                    <motion.button
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => goTo('metadata')}
+                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#062e61] to-[#155197]
+                        text-white font-semibold text-lg shadow-lg shadow-[#062e61]/20
+                        flex items-center justify-center gap-2"
+                    >
+                      Continue
+                      <ChevronRight className="w-5 h-5" />
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══ METADATA ═══ */}
+        {step === 'metadata' && (
+          <motion.div
+            key="metadata"
+            custom={direction}
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="min-h-[calc(100vh-56px)]"
+          >
+            <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+              {/* Photo strip */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex gap-2 overflow-x-auto pb-2 snap-x scrollbar-none"
+              >
+                {photos.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden ring-2 ring-white shadow-md snap-start"
+                  >
+                    <img
+                      src={p.preview}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </motion.div>
+
+              <motion.div
+                variants={stagger}
+                initial="initial"
+                animate="animate"
+                className="space-y-5"
+              >
+                {/* Section label */}
+                <motion.p
+                  variants={fadeUp}
+                  className="text-sm font-semibold text-slate-400 uppercase tracking-wider"
+                >
+                  Add Details (Optional)
+                </motion.p>
+
+                {/* Incident ID */}
+                <motion.div variants={fadeUp} className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600">Incident ID</label>
+                  <input
+                    type="text"
+                    value={incidentId}
+                    onChange={(e) => setIncidentId(e.target.value)}
+                    placeholder="e.g., HU-2024-001"
+                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-white
+                      focus:border-[#155197] focus:ring-2 focus:ring-[#155197]/15
+                      outline-none transition text-slate-800 text-base"
+                  />
+                </motion.div>
+
+                {/* Location */}
+                <motion.div variants={fadeUp} className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600">Location</label>
+                  <div className="flex gap-2">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={getLocation}
+                      disabled={locating}
+                      className="flex items-center gap-2 px-5 py-3.5 rounded-2xl border border-slate-200
+                        bg-white hover:border-[#155197]/40 transition text-sm font-medium text-slate-600"
+                    >
+                      {locating ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-[#155197]" />
+                      ) : (
+                        <Locate className="w-4 h-4 text-[#155197]" />
+                      )}
+                      {locating ? 'Getting GPS...' : 'Get Location'}
+                    </motion.button>
+                    <AnimatePresence>
+                      {location && (
+                        <motion.div
+                          initial={{ opacity: 0, x: 12, scale: 0.95 }}
+                          animate={{ opacity: 1, x: 0, scale: 1 }}
+                          exit={{ opacity: 0, x: 12 }}
+                          className="flex-1 flex items-center gap-2 px-4 py-3.5 rounded-2xl
+                            bg-[#155197]/8 border border-[#155197]/15
+                            text-[#155197] text-sm font-mono"
+                        >
+                          <MapPin className="w-4 h-4 flex-shrink-0" />
+                          {locationName}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+
+                {/* Notes */}
+                <motion.div variants={fadeUp} className="space-y-2">
+                  <label className="text-sm font-semibold text-slate-600">Notes</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value.slice(0, 500))}
+                    placeholder="Describe what's in the photos, context, conditions..."
+                    rows={4}
+                    className="w-full px-4 py-3.5 rounded-2xl border border-slate-200 bg-white
+                      focus:border-[#155197] focus:ring-2 focus:ring-[#155197]/15
+                      outline-none transition resize-none text-slate-800 text-base"
+                  />
+                  <p className="text-xs text-slate-400 text-right">{notes.length} / 500</p>
+                </motion.div>
+              </motion.div>
+
+              {/* Actions */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="flex gap-3 pt-4"
+              >
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => goTo('photos')}
+                  className="flex-1 py-4 rounded-2xl border-2 border-slate-200 text-slate-500
+                    font-semibold hover:bg-slate-50 transition"
+                >
+                  &larr; Back
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleUpload}
+                  className="flex-[2] py-4 rounded-2xl bg-gradient-to-r from-[#062e61] to-[#155197]
+                    text-white font-semibold text-lg shadow-lg shadow-[#062e61]/20
+                    flex items-center justify-center gap-2"
+                >
+                  <Send className="w-5 h-5" />
+                  Upload {photos.length} Photo{photos.length !== 1 ? 's' : ''}
+                </motion.button>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══ UPLOADING ═══ */}
+        {step === 'uploading' && (
+          <motion.div
+            key="uploading"
+            custom={direction}
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
+          >
+            <div className="text-center space-y-10">
+              {/* ASPR logo */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.3 }}
+                transition={{ delay: 0.3 }}
+              >
+                <img src="/aspr-logo-white.png" alt="" className="h-10 mx-auto" />
+              </motion.div>
+
+              {/* Progress ring */}
+              <div className="relative w-40 h-40 mx-auto">
+                <svg className="w-40 h-40 -rotate-90" viewBox="0 0 120 120">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r={RING_R}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeWidth="6"
+                  />
+                  <motion.circle
+                    cx="60"
+                    cy="60"
+                    r={RING_R}
+                    fill="none"
+                    stroke="url(#ring-grad)"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    strokeDasharray={RING_CIRC}
+                    initial={{ strokeDashoffset: RING_CIRC }}
+                    animate={{
+                      strokeDashoffset: RING_CIRC * (1 - uploadProgress / 100),
+                    }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                  />
+                  <defs>
+                    <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="#60a5fa" />
+                      <stop offset="100%" stopColor="#34d399" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <motion.span
+                    key={uploadProgress}
+                    initial={{ scale: 1.3, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-4xl font-bold text-white"
+                  >
+                    {uploadProgress}%
+                  </motion.span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-xl font-semibold text-white">
+                  {uploadError
+                    ? 'Upload Failed'
+                    : uploadProgress === 100
+                      ? 'Finishing up...'
+                      : `Uploading ${uploadedCount} of ${lastBatchSize}`}
+                </p>
+
+                {/* Linear bar */}
+                <div className="w-72 mx-auto">
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-blue-400 to-emerald-400"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${uploadProgress}%` }}
+                      transition={{ duration: 0.35 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Error */}
+                <AnimatePresence>
+                  {uploadError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-4 pt-2"
+                    >
+                      <p className="text-red-400 text-sm">{uploadError}</p>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleUpload}
+                        className="inline-flex items-center gap-2 bg-white text-[#062e61]
+                          px-6 py-3 rounded-xl font-semibold shadow-lg"
+                      >
+                        <RotateCcw className="w-4 h-4" /> Retry
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══ SUCCESS ═══ */}
+        {step === 'success' && (
+          <motion.div
+            key="success"
+            custom={direction}
+            variants={pageVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
+          >
+            {/* Celebration particles */}
+            <SuccessParticles />
+
+            <motion.div
+              variants={stagger}
+              initial="initial"
+              animate="animate"
+              className="text-center space-y-8 relative z-10"
+            >
+              {/* ASPR logo */}
+              <motion.div variants={fadeUp}>
+                <img src="/aspr-logo-white.png" alt="" className="h-10 mx-auto opacity-30" />
+              </motion.div>
+
+              {/* Success icon */}
+              <motion.div
+                variants={popIn}
+                className="w-28 h-28 rounded-full bg-emerald-500/15 border border-emerald-400/20
+                  flex items-center justify-center mx-auto backdrop-blur-sm"
+              >
+                <CheckCircle2 className="w-16 h-16 text-emerald-400 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]" />
+              </motion.div>
+
+              {/* Message */}
+              <motion.div variants={fadeUp} className="space-y-2">
+                <h2 className="text-4xl md:text-5xl font-display text-white tracking-wide uppercase">Upload Complete</h2>
+                <p className="text-blue-200/60 text-lg">
+                  {lastBatchSize} photo{lastBatchSize !== 1 ? 's' : ''} uploaded successfully
+                </p>
+                <p className="text-sm text-blue-300/30">Team: {teamName}</p>
+              </motion.div>
+
+              {/* Actions */}
+              <motion.div variants={fadeUp} className="flex flex-col gap-3 w-full max-w-xs mx-auto">
+                <motion.button
+                  whileHover={{ scale: 1.04, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={resetForMore}
+                  className="inline-flex items-center justify-center gap-2.5
+                    bg-white text-[#062e61] px-8 py-4 rounded-2xl
+                    font-bold text-lg shadow-xl shadow-black/20 transition-shadow"
+                >
+                  <Camera className="w-5 h-5" />
+                  Upload More Photos
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => router.push('/gallery')}
+                  className="inline-flex items-center justify-center gap-2
+                    bg-white/10 border border-white/20 text-white px-8 py-3.5 rounded-2xl
+                    font-semibold backdrop-blur-sm hover:bg-white/15 transition"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  View Gallery
+                </motion.button>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="text-blue-300/40 hover:text-white transition text-sm py-2"
+                >
+                  Logout
+                </button>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Bottom step dots (dark screens) ─── */}
+      {isDark && step !== 'uploading' && (
+        <div className="fixed bottom-6 inset-x-0 z-50 pointer-events-none">
+          <StepDots current={step} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─── Success Celebration Particles ──────────────────── */
+function SuccessParticles() {
+  const [ready, setReady] = useState(false)
+  useEffect(() => setReady(true), [])
+  if (!ready) return null
+
+  const colors = ['#34d399', '#60a5fa', '#fbbf24', '#f472b6', '#a78bfa', '#ffffff']
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {Array.from({ length: 40 }, (_, i) => {
+        const color = colors[i % colors.length]
+        const size = 4 + (i * 3) % 8
+        const startX = 40 + (i * 7) % 20
+        const delay = (i * 0.05) % 2
+        return (
+          <motion.div
+            key={i}
+            initial={{
+              x: `${startX}vw`,
+              y: '50vh',
+              scale: 0,
+              opacity: 1,
+            }}
+            animate={{
+              x: `${(i * 13) % 100}vw`,
+              y: `${-20 + (i * 7) % 30}vh`,
+              scale: [0, 1.5, 0.8],
+              opacity: [1, 1, 0],
+              rotate: (i % 2 === 0 ? 1 : -1) * 360,
+            }}
+            transition={{
+              duration: 2 + (i * 0.05) % 1.5,
+              delay,
+              ease: 'easeOut',
+            }}
+            style={{
+              position: 'absolute',
+              width: size,
+              height: size,
+              borderRadius: i % 3 === 0 ? '50%' : '2px',
+              backgroundColor: color,
+            }}
+          />
+        )
+      })}
     </div>
   )
 }
