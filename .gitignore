@@ -42,5 +42,6 @@ next-env.d.ts
 
 # generated docs
 docs/*.docx
+docs/*.pptx
 docs/~$*
 docs/*.pdf
