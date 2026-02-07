@@ -237,6 +237,16 @@ function queryMockDatabase(sql: string, params?: Record<string, any>) {
     const photos = mockDatabase.get('photos') || []
     return { rows: photos }
   }
+
+  // DELETE FROM photos WHERE id AND session_id
+  if (sqlUpper.includes('DELETE') && sqlUpper.includes('PHOTOS')) {
+    const photos = mockDatabase.get('photos') || []
+    const filtered = photos.filter(
+      (p: any) => !(p.id === params?.photoId && p.session_id === params?.sessionId)
+    )
+    mockDatabase.set('photos', filtered)
+    return { rows: [] }
+  }
   
   console.warn(`⚠️ Mock database: Unhandled query: ${sql.substring(0, 80)}...`)
   return { rows: [] }

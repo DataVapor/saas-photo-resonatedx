@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   LogOut, Download, X, ChevronLeft, ChevronRight,
   MapPin, FileText, AlertCircle, Loader2, Image as ImageIcon,
-  Camera, Filter, ArrowLeft,
+  Camera, Filter, Trash2,
 } from 'lucide-react'
 
 /* ─── Types ──────────────────────────────────────────── */
@@ -75,6 +75,10 @@ export default function GalleryPage() {
   // Filter
   const [filterIncident, setFilterIncident] = useState<string>('')
 
+  // Delete
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+
   // Auth + fetch on mount
   useEffect(() => {
     const t = sessionStorage.getItem('aspr_token')
@@ -123,6 +127,35 @@ export default function GalleryPage() {
   const logout = () => {
     sessionStorage.clear()
     router.push('/')
+  }
+
+  const deletePhoto = async (photoId: string) => {
+    setDeleting(photoId)
+    try {
+      const res = await fetch(`/api/photos/${photoId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error || 'Delete failed')
+      }
+      setPhotos((prev) => prev.filter((p) => p.id !== photoId))
+      // If we deleted the photo that was open in lightbox, close or move
+      if (selectedIdx !== null) {
+        const newFiltered = filtered.filter((p) => p.id !== photoId)
+        if (newFiltered.length === 0) {
+          setSelectedIdx(null)
+        } else if (selectedIdx >= newFiltered.length) {
+          setSelectedIdx(newFiltered.length - 1)
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed')
+    } finally {
+      setDeleting(null)
+      setConfirmDelete(null)
+    }
   }
 
   // Derived
@@ -301,6 +334,34 @@ export default function GalleryPage() {
                     {photo.incidentId && ` \u2022 ${photo.incidentId}`}
                   </p>
                 </div>
+
+                {/* Delete button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirmDelete === photo.id) {
+                      deletePhoto(photo.id)
+                    } else {
+                      setConfirmDelete(photo.id)
+                      setTimeout(() => setConfirmDelete((c) => c === photo.id ? null : c), 3000)
+                    }
+                  }}
+                  className={`absolute top-2 right-2 w-7 h-7 rounded-full backdrop-blur-sm
+                    flex items-center justify-center transition-all z-10
+                    ${confirmDelete === photo.id
+                      ? 'bg-red-500 opacity-100 scale-100'
+                      : 'bg-black/40 opacity-0 group-hover:opacity-100 hover:bg-red-500'
+                    }
+                    ${deleting === photo.id ? 'animate-pulse' : ''}
+                  `}
+                >
+                  {deleting === photo.id ? (
+                    <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5 text-white" />
+                  )}
+                </button>
 
                 {/* Location pin */}
                 {photo.latitude && (
@@ -492,6 +553,34 @@ export default function GalleryPage() {
                     Download Original
                   </motion.a>
                 )}
+
+                {/* Delete */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirmDelete === selectedPhoto.id) {
+                      deletePhoto(selectedPhoto.id)
+                    } else {
+                      setConfirmDelete(selectedPhoto.id)
+                      setTimeout(() => setConfirmDelete((c) => c === selectedPhoto.id ? null : c), 3000)
+                    }
+                  }}
+                  disabled={deleting === selectedPhoto.id}
+                  className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl
+                    font-semibold text-sm transition
+                    ${confirmDelete === selectedPhoto.id
+                      ? 'bg-red-500 text-white'
+                      : 'bg-white/5 text-red-400 hover:bg-red-500/20'
+                    }`}
+                >
+                  {deleting === selectedPhoto.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  {confirmDelete === selectedPhoto.id ? 'Tap again to confirm' : 'Delete Photo'}
+                </button>
               </div>
             </motion.div>
 
@@ -527,20 +616,46 @@ export default function GalleryPage() {
                 <p className="text-sm text-white/70 mt-3">{selectedPhoto.notes}</p>
               )}
 
-              {selectedPhoto.originalUrl && (
-                <a
-                  href={selectedPhoto.originalUrl}
-                  download={selectedPhoto.fileName}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="flex items-center justify-center gap-2 w-full py-3 mt-3 rounded-xl
-                    bg-white text-[#062e61] font-semibold text-sm"
+              <div className="flex gap-2 mt-3">
+                {selectedPhoto.originalUrl && (
+                  <a
+                    href={selectedPhoto.originalUrl}
+                    download={selectedPhoto.fileName}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl
+                      bg-white text-[#062e61] font-semibold text-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (confirmDelete === selectedPhoto.id) {
+                      deletePhoto(selectedPhoto.id)
+                    } else {
+                      setConfirmDelete(selectedPhoto.id)
+                      setTimeout(() => setConfirmDelete((c) => c === selectedPhoto.id ? null : c), 3000)
+                    }
+                  }}
+                  disabled={deleting === selectedPhoto.id}
+                  className={`px-4 py-3 rounded-xl font-semibold text-sm transition
+                    ${confirmDelete === selectedPhoto.id
+                      ? 'bg-red-500 text-white'
+                      : 'bg-white/10 text-red-400'
+                    }`}
                 >
-                  <Download className="w-4 h-4" />
-                  Download
-                </a>
-              )}
+                  {deleting === selectedPhoto.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
