@@ -86,7 +86,9 @@ export async function POST(req: Request) {
     })
     console.log('✅ PIN_CREATED:', auditLog)
     
-    return Response.json(result.rows[0])
+    return Response.json(result.rows[0], {
+      headers: { 'Cache-Control': 'no-store' },
+    })
   } catch (error) {
     console.error('PIN creation error:', error)
     return Response.json({ error: 'Failed to create PIN' }, { status: 500 })

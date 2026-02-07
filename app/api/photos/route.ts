@@ -1,5 +1,5 @@
 import { query } from '@/lib/db'
-import { verifyToken } from '@/lib/auth'
+import { verifyToken, signImageUrl } from '@/lib/auth'
 
 export async function GET(req: Request) {
   try {
@@ -24,8 +24,8 @@ export async function GET(req: Request) {
     const photos = result.rows.map((row: any) => ({
       id: row.id,
       fileName: row.file_name,
-      thumbnailUrl: `/api/photos/${row.id}/image?type=thumbnail&token=${encodeURIComponent(token!)}`,
-      originalUrl: `/api/photos/${row.id}/image?type=original&token=${encodeURIComponent(token!)}`,
+      thumbnailUrl: signImageUrl(row.id, 'thumbnail'),
+      originalUrl: signImageUrl(row.id, 'original'),
       fileSize: Number(row.file_size) || 0,
       width: Number(row.width) || 0,
       height: Number(row.height) || 0,
@@ -38,12 +38,14 @@ export async function GET(req: Request) {
       createdAt: row.created_at,
     }))
 
-    return Response.json({ photos })
+    return Response.json({ photos }, {
+      headers: { 'Cache-Control': 'private, no-cache' },
+    })
   } catch (error) {
     console.error('Photos fetch error:', error)
     return Response.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch photos' },
-      { status: 500 }
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
     )
   }
 }

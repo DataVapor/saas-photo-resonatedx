@@ -78,6 +78,8 @@ export async function POST(req: Request) {
       sessionId,
       teamName,
       token,
+    }, {
+      headers: { 'Cache-Control': 'no-store' },
     })
   } catch (error) {
     console.error('PIN validation error:', error)

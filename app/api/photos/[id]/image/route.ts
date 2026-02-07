@@ -1,4 +1,4 @@
-import { verifyToken } from '@/lib/auth'
+import { verifyImageSignature } from '@/lib/auth'
 import { BlobServiceClient } from '@azure/storage-blob'
 
 let blobClient: BlobServiceClient | null = null
@@ -13,25 +13,22 @@ function getBlobClient(): BlobServiceClient | null {
   return blobClient
 }
 
-/** GET /api/photos/[id]/image?type=thumbnail|original&token=xxx */
+/** GET /api/photos/[id]/image?type=thumbnail|original&exp=123&sig=abc */
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const url = new URL(req.url)
-
-    // Accept token from header or query param (img src can't send headers)
-    const authHeader = req.headers.get('authorization')
-    const token = authHeader?.replace('Bearer ', '') || url.searchParams.get('token')
-    if (!token) {
-      return new Response('Unauthorized', { status: 401 })
-    }
-
-    verifyToken(token) // throws if invalid
-
     const { id: photoId } = await params
+    const url = new URL(req.url)
     const type = url.searchParams.get('type') === 'thumbnail' ? 'thumbnail' : 'original'
+    const exp = url.searchParams.get('exp') || ''
+    const sig = url.searchParams.get('sig') || ''
+
+    // Verify signed URL (CDN-safe, no JWT needed)
+    if (!verifyImageSignature(photoId, type, exp, sig)) {
+      return new Response('Forbidden', { status: 403 })
+    }
 
     const client = getBlobClient()
     if (!client) {
@@ -61,18 +58,25 @@ export async function GET(
       },
     })
 
+    // CDN-friendly cache headers:
+    // - public: CDN/Front Door can cache
+    // - s-maxage=604800: CDN caches for 7 days
+    // - max-age=3600: browser caches for 1 hour
+    // - immutable: content at this URL won't change (signed URLs are unique)
     return new Response(webStream, {
       headers: {
         'Content-Type': download.contentType || (type === 'thumbnail' ? 'image/webp' : 'image/jpeg'),
-        'Cache-Control': 'private, max-age=3600',
         'Content-Length': String(download.contentLength || 0),
+        'Cache-Control': 'public, max-age=3600, s-maxage=604800, immutable',
+        'CDN-Cache-Control': 'public, max-age=604800',
+        'Vary': 'Accept-Encoding',
       },
     })
   } catch (error) {
     console.error('Image proxy error:', error)
-    return new Response(
-      error instanceof Error ? error.message : 'Failed to load image',
-      { status: 500 }
-    )
+    return new Response('Failed to load image', {
+      status: 500,
+      headers: { 'Cache-Control': 'no-store' },
+    })
   }
 }
