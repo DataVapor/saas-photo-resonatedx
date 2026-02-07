@@ -1,7 +1,7 @@
 # Security Plan
 
 **System Name:** ASPR Photo Repository Application
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Last Updated:** 2026-02-07
 **Classification:** CUI // SP-SSP
 **Owner:** HHS ASPR / Leidos
@@ -52,8 +52,10 @@ This system enables ASPR field teams to securely upload disaster-related photogr
 | Runtime | Node.js | 22.x LTS |
 | Database | Azure SQL Server | Managed |
 | Blob Storage | Azure Blob Storage | v12 SDK |
-| Authentication | JWT (HS256) + bcrypt | jsonwebtoken 9.x, bcryptjs 3.x |
-| Identity Provider | Azure Entra ID (Managed Identity) | DefaultAzureCredential |
+| Authentication (Field) | JWT (HS256) + bcrypt | jsonwebtoken 9.x, bcryptjs 3.x |
+| Authentication (SSO) | Auth.js with OIDC providers | Auth.js v5 (NextAuth) |
+| Identity Providers | Entra ID, Login.gov, ID.me | OIDC authorization code flow |
+| Azure Identity | Azure Entra ID (Managed Identity) | DefaultAzureCredential |
 | Image Processing | Sharp | 0.34.5 |
 | Hosting | Azure App Service | Linux |
 
@@ -66,16 +68,20 @@ This system enables ASPR field teams to securely upload disaster-related photogr
 | Incident IDs | Low | Structured identifiers for incident tracking |
 | PIN credentials | High | 6-digit PINs stored as bcrypt hashes |
 | JWT tokens | Moderate | Session tokens with 24-hour expiration |
-| Admin tokens | High | Static authentication tokens for administrative access |
+| Admin tokens | High | Static fallback tokens for administrative access (deprecated by Entra ID SSO) |
+| Entra ID tokens | Moderate | OIDC tokens for HHS staff authentication |
+| Login.gov tokens | Moderate | OIDC tokens for federal/public user authentication |
+| ID.me tokens | Moderate | OIDC tokens for external responder authentication |
 | User notes | Low | Free-text annotations on uploaded photos |
 | Team identifiers | Low | Team names associated with upload sessions |
 
 ### 3.3 User Types
 
-| Role | Count | Access Level | Authentication Method |
+| Role | Count | Access Level | Authentication Methods |
 |---|---|---|---|
-| Field Team Member | Variable (per incident) | Upload photos, view own session gallery | 6-digit PIN → JWT |
-| Administrator | Limited | Create PINs, manage sessions | Static admin token |
+| Field Team Member (HHS) | Variable (per incident) | Upload photos, view own session gallery | Entra ID SSO or 6-digit PIN → JWT |
+| Field Team Member (External) | Variable (per incident) | Upload photos, view own session gallery | Login.gov, ID.me, or 6-digit PIN → JWT |
+| Administrator | Limited | Create PINs, manage sessions | Entra ID SSO (HHS tenant, admin group) |
 
 ---
 
@@ -85,8 +91,8 @@ This system enables ASPR field teams to securely upload disaster-related photogr
 
 | Control | Implementation |
 |---|---|
-| **AC-2 Account Management** | Upload sessions created by admins with expiration (48 hours); no persistent user accounts |
-| **AC-3 Access Enforcement** | JWT Bearer tokens required for all photo operations; admin token required for management APIs |
+| **AC-2 Account Management** | Upload sessions created by admins with expiration (48 hours); SSO users identified by OIDC subject claims; no local persistent user accounts |
+| **AC-3 Access Enforcement** | JWT Bearer tokens required for all photo operations; admin access requires Entra ID SSO (HHS tenant) with security group membership or fallback admin token |
 | **AC-7 Unsuccessful Login Attempts** | 5 PIN attempts per minute per IP, then 15-minute lockout; 3 admin attempts then 30-minute lockout |
 | **AC-8 System Use Notification** | Government branding (ASPR/HHS) establishes federal system context |
 | **AC-11 Session Lock** | JWT tokens expire after 24 hours; session data stored in browser sessionStorage (cleared on tab close) |
@@ -116,10 +122,12 @@ This system enables ASPR field teams to securely upload disaster-related photogr
 
 | Control | Implementation |
 |---|---|
-| **IA-2 User Identification** | Field teams identified by session ID (linked to team name); admins identified by token |
-| **IA-5 Authenticator Management** | PINs generated via CSPRNG (`crypto.randomInt`); stored as bcrypt hashes (10 salt rounds); expire after 48 hours |
-| **IA-6 Authenticator Feedback** | PIN input shows dots/asterisks; remaining attempts displayed on failure |
-| **IA-8 Identification (Non-Org Users)** | N/A — system restricted to ASPR personnel |
+| **IA-2 User Identification** | Field teams identified by session ID (PIN) or OIDC subject claim (SSO); admins identified by Entra ID principal |
+| **IA-2(1) Multi-Factor Auth (Privileged)** | Entra ID enforces MFA per HHS tenant policy for admin users |
+| **IA-2(2) Multi-Factor Auth (Non-Privileged)** | Login.gov requires phishing-resistant MFA; ID.me requires MFA; PIN auth is single-factor (mitigated by rate limiting and expiration) |
+| **IA-5 Authenticator Management** | PINs generated via CSPRNG, bcrypt-hashed, 48h expiry; OIDC tokens managed by identity providers per their policies |
+| **IA-6 Authenticator Feedback** | PIN input shows dots/asterisks; remaining attempts displayed on failure; OIDC login uses provider-hosted UI |
+| **IA-8 Identification (Non-Org Users)** | External responders authenticate via Login.gov (GSA) or ID.me; both provide verified identity claims via OIDC |
 
 #### PIN Security Details
 
@@ -128,15 +136,28 @@ This system enables ASPR field teams to securely upload disaster-related photogr
 - **Comparison:** `bcrypt.compare()` — constant-time comparison inherent to bcrypt
 - **Expiration:** 48 hours from creation
 - **Distribution:** Plaintext PIN returned once at creation, communicated verbally to field team
-- **Admin Token Comparison:** `crypto.timingSafeEqual()` — prevents timing attacks
+- **Admin Token Comparison:** `crypto.timingSafeEqual()` — prevents timing attacks (fallback mode only)
+
+#### OIDC Identity Provider Security
+
+| Provider | Protocol | Client Auth | MFA | Identity Proofing | Registration |
+|---|---|---|---|---|---|
+| Microsoft Entra ID | OIDC (authorization code) | Client secret | HHS tenant policy | N/A (org accounts) | Automatic (HHS staff) |
+| Login.gov | OIDC (iGov Profile) | `private_key_jwt` | Required (phishing-resistant) | IAL1 or IAL2 | One-time (reusable across agencies) |
+| ID.me | OIDC + PKCE | Authorization code | Required | IAL2 (verified) | One-time (reusable across partners) |
+
+- All OIDC providers use TLS-encrypted redirect flows
+- Auth.js (NextAuth v5) manages OIDC state, nonce, and PKCE verification
+- OIDC tokens are validated server-side; only the application JWT is issued to the client
+- Provider-issued access tokens are not stored client-side
 
 ### 4.4 System and Communications Protection (SC)
 
 | Control | Implementation |
 |---|---|
 | **SC-8 Transmission Confidentiality** | HTTPS enforced via HSTS (`max-age=31536000; includeSubDomains; preload`) |
-| **SC-12 Cryptographic Key Management** | JWT_SECRET and ADMIN_TOKEN via environment variables (Key Vault recommended) |
-| **SC-13 Cryptographic Protection** | JWT HS256 for tokens; bcrypt for PINs; HMAC-SHA256 for signed image URLs |
+| **SC-12 Cryptographic Key Management** | JWT_SECRET, ADMIN_TOKEN, and OIDC client secrets via environment variables (Key Vault recommended); Login.gov uses `private_key_jwt` with asymmetric keys |
+| **SC-13 Cryptographic Protection** | JWT HS256 for session tokens; bcrypt for PINs; HMAC-SHA256 for signed image URLs; OIDC providers enforce TLS and token signing |
 | **SC-28 Protection of Information at Rest** | Azure SQL TDE (transparent data encryption); Azure Blob Storage encryption at rest |
 
 #### Security Headers
@@ -169,13 +190,13 @@ All responses include hardened headers via `next.config.ts`:
 
 | # | Vulnerability | Mitigation |
 |---|---|---|
-| A01 | Broken Access Control | JWT verification on every API call; session-scoped photo access; admin token with timing-safe comparison |
-| A02 | Cryptographic Failures | HTTPS enforced; bcrypt for PINs; JWT HS256; HMAC-SHA256 signed URLs |
+| A01 | Broken Access Control | JWT verification on every API call; session-scoped photo access; Entra ID SSO with group-based RBAC for admin; timing-safe fallback token |
+| A02 | Cryptographic Failures | HTTPS enforced; bcrypt for PINs; JWT HS256; HMAC-SHA256 signed URLs; OIDC tokens validated server-side |
 | A03 | Injection | Parameterized SQL queries (mssql `request.input()`); no string concatenation in queries |
 | A04 | Insecure Design | Rate limiting on all auth endpoints; session expiration; input validation |
 | A05 | Security Misconfiguration | Security headers on all responses; X-Powered-By suppressed; source maps disabled |
 | A06 | Vulnerable Components | npm dependency management; version-locked packages |
-| A07 | Identification & Auth Failures | bcrypt hashing; JWT expiration; rate limiting with lockout |
+| A07 | Identification & Auth Failures | bcrypt hashing; JWT expiration; rate limiting with lockout; OIDC SSO with MFA (Entra ID, Login.gov, ID.me) |
 | A08 | Software & Data Integrity | CI/CD pipeline; GitHub version control; OIDC deployment authentication |
 | A09 | Security Logging & Monitoring | Structured audit logging for all security events |
 | A10 | Server-Side Request Forgery | No user-controlled URL fetching; image proxy validates signed URLs only |
@@ -251,7 +272,7 @@ All responses include hardened headers via `next.config.ts`:
 
 1. **Automated Response:** Rate limiting and lockout mechanisms
 2. **Log Review:** Check server logs for patterns of malicious activity
-3. **Manual Response:** Rotate ADMIN_TOKEN and JWT_SECRET if compromise suspected
+3. **Manual Response:** Rotate ADMIN_TOKEN, JWT_SECRET, and OIDC client secrets if compromise suspected; revoke Entra ID app registration if needed
 4. **Notification:** Alert ISSO and system owner per HHS incident response procedures
 
 ---
@@ -261,7 +282,7 @@ All responses include hardened headers via `next.config.ts`:
 | Standard | Status | Notes |
 |---|---|---|
 | FIPS 199 | Compliant | MODERATE categorization documented |
-| NIST SP 800-53 (Rev 5) | Partial | Key controls implemented (AC, AU, IA, SC, SI) |
+| NIST SP 800-53 (Rev 5) | Partial | Key controls implemented (AC, AU, IA, SC, SI); IA-2 enhanced with OIDC MFA via Entra ID, Login.gov, ID.me |
 | NIST SP 800-63B | Compliant | CSPRNG for PIN generation, bcrypt storage |
 | OWASP Top 10 (2021) | Compliant | All 10 categories addressed |
 | HSTS Preload | Compliant | 1-year max-age with includeSubDomains |
@@ -283,3 +304,4 @@ All responses include hardened headers via `next.config.ts`:
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-02-07 | HHS ASPR / Leidos | Initial security plan |
+| 1.1 | 2026-02-07 | HHS ASPR / Leidos | Multi-tier authentication: Entra ID SSO, Login.gov, ID.me OIDC; updated IA controls for MFA and non-org users |

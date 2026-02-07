@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | System Name | ASPR Photo Repository |
-| Document Version | 1.0 |
+| Document Version | 1.1 |
 | Last Updated | 2026-02-07 |
 | Owner | HHS ASPR / Leidos |
 
@@ -49,7 +49,18 @@ https://app-aspr-photos-lab.azurewebsites.net
 
 You will see the welcome screen with ASPR branding and a "Get Started" button.
 
-### 2.2 PIN Login
+### 2.2 Login Options
+
+The application supports multiple ways to sign in. Your administrator will advise which method to use.
+
+| Method | Who | How |
+|---|---|---|
+| **PIN** | All field teams | 6-digit PIN distributed by admin at staging area |
+| **HHS Sign-In** | HHS/ASPR staff with Entra ID | Tap "Sign in with HHS" and use your HHS credentials |
+| **Login.gov** | Federal employees, public users | Tap "Sign in with Login.gov" and use your Login.gov account |
+| **ID.me** | External responders, contractors | Tap "Sign in with ID.me" and use your ID.me account |
+
+### 2.3 PIN Login
 
 1. Tap **Get Started** on the welcome screen
 2. Enter the **6-digit PIN** provided by your operations administrator
@@ -57,15 +68,31 @@ You will see the welcome screen with ASPR branding and a "Get Started" button.
 4. On success, you will be taken to the photo upload screen
 
 **Important:**
+
 - PINs expire after **48 hours** — request a new one if yours has expired
 - You have **5 attempts** per minute before a 15-minute lockout
 - Remaining attempts are displayed after each failed login
 - PINs are shared per team — all members of your team use the same PIN
 
-### 2.3 Session Information
+### 2.4 SSO Login (HHS Sign-In, Login.gov, ID.me)
+
+1. Tap **Get Started** on the welcome screen
+2. Select your sign-in provider (HHS, Login.gov, or ID.me)
+3. You will be redirected to the identity provider's login page
+4. Complete sign-in with your credentials and MFA
+5. You will be redirected back to the photo upload screen
+
+**Notes:**
+
+- Login.gov and ID.me accounts are **one-time registration** — if you already have an account from another government service (IRS, VA, FEMA, USAJOBS), you can use it here
+- SSO login requires an active internet connection for the redirect flow
+- If connectivity is limited in the field, use a PIN instead
+
+### 2.5 Session Information
 
 After logging in:
-- Your **team name** is displayed at the top of the screen
+
+- Your **team name** or **display name** is shown at the top of the screen
 - Your session is valid for **24 hours**
 - Closing the browser tab will end your session
 - You can log out at any time using the **Log Out** button
@@ -184,8 +211,8 @@ Navigate to `/gallery` or tap **View Gallery** after uploading. The gallery show
 ### 6.1 Accessing the Admin Dashboard
 
 1. Navigate to `/admin`
-2. Enter the **admin authentication token** provided by system operations
-3. Tap **Authenticate**
+2. Sign in with your **HHS Entra ID credentials** (you must be a member of the ASPR Photo Admins security group)
+3. If Entra ID is not configured, enter the **admin authentication token** provided by system operations and tap **Authenticate**
 
 ### 6.2 Creating a PIN
 
@@ -273,3 +300,4 @@ Contact your system administrator or the ASPR IT support desk for assistance wit
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-02-07 | HHS ASPR / Leidos | Initial user guide |
+| 1.1 | 2026-02-07 | HHS ASPR / Leidos | Added SSO login options (HHS Entra ID, Login.gov, ID.me); updated admin authentication |

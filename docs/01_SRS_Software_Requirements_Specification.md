@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Document ID | ASPR-PHOTOS-SRS-001 |
-| Version | 1.1 |
+| Version | 1.2 |
 | Date | 2026-02-07 |
 | Status | Development |
 | Classification | For Official Use Only (FOUO) |
@@ -22,20 +22,21 @@ The ASPR Photo Repository is a secure, web-based application that enables Admini
 ### 1.2 Scope
 
 The application provides:
-- PIN-based authentication for field teams with bcrypt-hashed credentials
+- Multi-tier authentication: PIN-based (field default), Microsoft Entra ID (HHS staff), Login.gov and ID.me (external responders)
 - Multi-step wizard for photo upload with metadata (GPS, incident ID, notes)
 - Photo gallery with download, delete, and filtering capabilities
-- Admin dashboard for session/PIN management
+- Admin dashboard secured by Entra ID SSO for session/PIN management
 - Signed image URLs for CDN-safe photo delivery
 - Secure storage via Azure cloud services
 - Government-compliant (ASPR/HHS) branding and security controls
 
 ### 1.3 Intended Users
 
-| Role | Description |
-|---|---|
-| **Field Team Member** | ASPR responders who capture and upload photos from the field |
-| **Admin** | Operations staff who create PINs, manage sessions, and monitor activity |
+| Role | Description | Authentication Method |
+|---|---|---|
+| **Field Team Member (HHS)** | ASPR responders with HHS credentials who capture and upload photos | Entra ID SSO or PIN |
+| **Field Team Member (External)** | State/local, contractor, or volunteer responders | Login.gov, ID.me, or PIN |
+| **Admin** | Operations staff who create PINs, manage sessions, and monitor activity | Entra ID SSO (HHS tenant) |
 
 ### 1.4 Technology Stack
 
@@ -45,7 +46,8 @@ The application provides:
 | Styling | Tailwind CSS 4, Framer Motion 12, Lenis smooth scroll |
 | Database | Azure SQL Server (mssql 12.2) |
 | Storage | Azure Blob Storage (@azure/storage-blob 12.30) |
-| Auth | JWT (jsonwebtoken 9.x), bcryptjs 3.x, HMAC-SHA256 signed URLs |
+| Auth (Field) | JWT (jsonwebtoken 9.x), bcryptjs 3.x, HMAC-SHA256 signed URLs |
+| Auth (SSO) | Auth.js (NextAuth v5) with Microsoft Entra ID, Login.gov, ID.me OIDC providers |
 | Image Processing | Sharp 0.34.5 |
 | Deployment | Azure App Service via GitHub Actions CI/CD |
 | Runtime | Node.js 22.x |
@@ -56,7 +58,19 @@ The application provides:
 
 ### 2.1 Authentication & Authorization
 
+The system implements a multi-tier authentication model to support HHS staff, external responders, and field-expedient access during disaster operations.
+
+| Authentication Tier | Method | Protocol | Users | Routes |
+|---|---|---|---|---|
+| **PIN** | 6-digit PIN with bcrypt | Custom (JWT issuance) | All field teams | `/` (upload) |
+| **Entra ID** | Microsoft Entra ID SSO | OIDC (Auth.js) | HHS staff | `/admin`, `/` (upload) |
+| **Login.gov** | GSA Login.gov | OIDC (Auth.js) | External federal/public | `/` (upload) |
+| **ID.me** | ID.me identity verification | OIDC + PKCE (Auth.js) | External responders | `/` (upload) |
+
 #### FR-2.1.1 PIN Login (Field Teams)
+
+PIN-based authentication is the primary field authentication method, designed for rapid access in disaster response conditions where SSO redirects may not be feasible (limited connectivity, shared devices, staging area distribution).
+
 - The system SHALL present a multi-step wizard at the root URL (`/`) starting with a welcome screen.
 - The system SHALL validate 6-digit PINs by fetching all non-expired sessions and comparing bcrypt hashes.
 - The system SHALL only accept PINs linked to sessions not yet expired (`expires_at > GETUTCDATE()`).
@@ -64,24 +78,65 @@ The application provides:
 - The system SHALL store the JWT token, session ID, and team name in the browser's `sessionStorage`.
 - The system SHALL display remaining login attempts on failure.
 - The system SHALL auto-advance the PIN input when all 6 digits are entered.
+- PINs SHALL be generated using CSPRNG per NIST SP 800-63B.
+- PINs SHALL be stored as bcrypt hashes (10 salt rounds) and SHALL NOT be retrievable after creation.
 
-#### FR-2.1.2 Admin Authentication
+#### FR-2.1.2 Admin Authentication (Entra ID)
+
 - The system SHALL provide an admin dashboard at `/admin`.
-- The system SHALL require an admin token (matching the `ADMIN_TOKEN` environment variable) via the `x-admin-token` header for administrative API calls.
-- The system SHALL use timing-safe comparison (`crypto.timingSafeEqual`) for admin token verification.
-- The system SHALL support admin login through the web dashboard UI.
+- The system SHALL authenticate admin users via Microsoft Entra ID single sign-on (SSO) using the OIDC authorization code flow.
+- The system SHALL restrict admin access to users within the HHS Entra ID tenant.
+- The system SHALL support role-based access control via Entra ID security groups (e.g., "ASPR Photo Admins").
+- The system SHALL use Auth.js (NextAuth v5) with the Microsoft Entra ID provider for OIDC integration.
+- The admin Entra ID app registration SHALL be configured with redirect URI `/api/auth/callback/microsoft-entra-id`.
+- The system SHALL fall back to static admin token authentication (`x-admin-token` header with `crypto.timingSafeEqual`) when Entra ID is unavailable or not configured.
 
-#### FR-2.1.3 Session Management
-- JWT tokens SHALL expire after 24 hours.
+#### FR-2.1.3 Entra ID Upload Authentication (HHS Staff)
+
+- The system SHALL offer Microsoft Entra ID SSO as an upload authentication option for HHS staff at the root URL (`/`).
+- Users authenticating via Entra ID SHALL be issued a JWT session token equivalent to PIN-authenticated users.
+- The system SHALL create or link an `upload_session` record for Entra ID-authenticated users, identified by their Entra ID principal name.
+- Entra ID upload sessions SHALL NOT expire after 48 hours — session lifetime is governed by the Entra ID token and the application JWT (24 hours).
+- This method SHALL NOT replace PIN authentication; both SHALL be available concurrently.
+
+#### FR-2.1.4 External Identity Providers (Login.gov, ID.me)
+
+For non-HHS responders (state/local government, contractors, volunteers) who do not have Entra ID credentials:
+
+**Login.gov:**
+- The system SHALL support Login.gov as an OIDC identity provider via Auth.js.
+- Login.gov integration SHALL use the `private_key_jwt` client authentication method (preferred by Login.gov for web applications).
+- The system SHALL support IAL1 (self-asserted identity) at minimum; IAL2 (identity-proofed) MAY be required based on ASPR policy.
+- Login.gov is a one-time registration; users who have an existing Login.gov account (e.g., from IRS, SSA, USAJOBS, FEMA) SHALL be able to sign in without re-registering.
+- Login.gov is provided by GSA at no cost to federal agencies.
+
+**ID.me:**
+- The system SHALL support ID.me as an OIDC identity provider via Auth.js.
+- ID.me integration SHALL use the authorization code flow with PKCE.
+- The system MAY leverage ID.me's first responder group affiliation verification for automatic role assignment.
+- ID.me is a one-time registration; users with existing ID.me accounts (e.g., from VA, state services) SHALL be able to sign in without re-registering.
+- ID.me access tokens expire after 5 minutes; the system SHALL issue its own JWT session token upon successful ID.me authentication.
+
+**Common Requirements:**
+- Users authenticating via Login.gov or ID.me SHALL be issued a JWT session token equivalent to PIN-authenticated users.
+- The system SHALL create an `upload_session` record for externally authenticated users, identified by their provider subject ID.
+- External identity providers SHALL NOT replace PIN authentication; all methods SHALL be available concurrently.
+
+#### FR-2.1.5 Session Management
+
+- JWT tokens SHALL expire after 24 hours regardless of authentication method.
 - Session data SHALL be stored in `sessionStorage` (cleared on tab close).
 - PINs SHALL expire 48 hours after creation.
-- Users SHALL be able to log out, clearing all session data.
+- Entra ID sessions SHALL respect the Entra ID token lifetime and the application JWT expiration (whichever is shorter).
+- Users SHALL be able to log out, clearing all session data and revoking the Auth.js session (for SSO users).
 
-#### FR-2.1.4 Signed Image URLs
+#### FR-2.1.6 Signed Image URLs
+
 - The system SHALL generate HMAC-SHA256 signed URLs for image access.
 - Signed URLs SHALL include photo ID, image type, expiry timestamp, and signature.
 - Signed URLs SHALL expire after 24 hours (default).
 - The image proxy SHALL verify signatures before serving blob content.
+- Signed URLs SHALL function identically regardless of the user's original authentication method.
 
 ### 2.2 Photo Upload
 
@@ -158,7 +213,7 @@ The application provides:
 
 #### FR-2.4.3 Admin API
 - `POST /api/auth/create-session` SHALL create a new PIN and return `{ id, pin, team_name }`.
-- The endpoint SHALL require the `x-admin-token` header.
+- The endpoint SHALL require Entra ID authentication (or fallback `x-admin-token` header).
 - The endpoint SHALL validate team names (max 255 characters, alphanumeric with spaces/hyphens/underscores).
 
 ---
@@ -289,7 +344,7 @@ Create a new PIN (admin only).
 
 | Property | Details |
 |---|---|
-| Auth | `x-admin-token` header |
+| Auth | Entra ID session or `x-admin-token` header (fallback) |
 | Request Body | `{ "teamName": "Team A" }` (optional) |
 | Success (200) | `{ "id": "uuid", "pin": "654321", "team_name": "Team A" }` |
 | Errors | 401 (invalid admin token), 429 (rate limited) |
@@ -354,9 +409,10 @@ Serve an image via signed URL proxy.
 
 | Route | Page | Access | Description |
 |---|---|---|---|
-| `/` | Upload Wizard | Public → Authenticated | Multi-step: welcome, PIN, photos, metadata, upload, success |
+| `/` | Upload Wizard | Public → Authenticated | Multi-step: welcome, auth (PIN / Entra ID / Login.gov / ID.me), photos, metadata, upload, success |
 | `/gallery` | Photo Gallery | Authenticated (JWT) | Review, download, delete uploaded photos |
-| `/admin` | Admin Dashboard | Admin token | PIN creation and management |
+| `/admin` | Admin Dashboard | Entra ID SSO (HHS tenant) | PIN creation and management |
+| `/api/auth/[...nextauth]` | Auth.js Routes | System | OIDC callback handlers for Entra ID, Login.gov, ID.me |
 
 ---
 
@@ -366,10 +422,11 @@ Serve an image via signed URL proxy.
 - Photo Search & Filtering — search by date range, team, or keyword
 - PIN Revocation — admin ability to deactivate PINs before expiration
 - Redis Rate Limiting — distributed rate limiting for multi-instance deployments
-- OAuth 2.0 / Entra ID Integration — enterprise SSO for admin access
 - Structured Audit Log Table — persistent database-backed audit trail
 - Azure Application Insights — production monitoring and alerting
 - Batch Download — ZIP download of all session photos
+- ID.me First Responder Verification — automatic role assignment using ID.me group affiliation
+- Login.gov IAL2 Enforcement — require identity proofing for external responders based on ASPR policy
 
 ---
 
@@ -388,3 +445,4 @@ Serve an image via signed URL proxy.
 |---|---|---|---|
 | 1.0 | 2026-02-06 | HHS ASPR / Leidos | Initial requirements document |
 | 1.1 | 2026-02-07 | HHS ASPR / Leidos | Updated: bcrypt PINs, 48h expiry, gallery page, signed URLs, wizard flow, glassmorphic UI, Lenis scroll |
+| 1.2 | 2026-02-07 | HHS ASPR / Leidos | Authentication roadmap: Entra ID SSO for admin and uploads, Login.gov and ID.me for external responders, PIN retained as primary field method |

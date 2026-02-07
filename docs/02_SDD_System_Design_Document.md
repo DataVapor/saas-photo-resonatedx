@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Document ID | ASPR-PHOTOS-SDD-001 |
-| Version | 1.0 |
+| Version | 1.1 |
 | Date | 2026-02-07 |
 | Status | Draft |
 | Classification | For Official Use Only (FOUO) |
@@ -87,11 +87,15 @@ The ASPR Photo Repository is a secure, web-based application that enables Admini
 ### 2.3 Authentication Flow
 
 ```
-Field Team:
+Field Team (PIN):
   PIN (6-digit) → bcrypt.compare() → JWT (HS256, 24h) → Bearer token
 
+Field Team (SSO):
+  Entra ID / Login.gov / ID.me → OIDC authorization code → Auth.js session → JWT (HS256, 24h) → Bearer token
+
 Admin:
-  Admin Token → timing-safe comparison → x-admin-token header
+  Entra ID SSO → OIDC → Auth.js session → group claim verified (ASPR Photo Admins)
+  Fallback: Admin Token → timing-safe comparison → x-admin-token header
 
 Image Access:
   HMAC-SHA256 signed URL → /api/photos/[id]/image?type=...&exp=...&sig=...
@@ -113,6 +117,7 @@ Image Access:
 | Database | Azure SQL (mssql) | 12.2.0 | Relational data storage |
 | Blob Storage | @azure/storage-blob | 12.30.0 | Binary file storage |
 | Identity | @azure/identity | 4.13.0 | Entra ID managed identity |
+| SSO | Auth.js (NextAuth) | v5 | OIDC provider integration (Entra ID, Login.gov, ID.me) |
 | Auth | jsonwebtoken | 9.0.3 | JWT token management |
 | Password Hashing | bcryptjs | 3.0.3 | PIN hashing (10 salt rounds) |
 | Image Processing | Sharp | 0.34.5 | Thumbnail generation, metadata extraction |
@@ -132,6 +137,7 @@ app-ndms-photos-lab/
 │   ├── admin/page.tsx                  # Admin dashboard (login + PIN creation)
 │   └── api/
 │       ├── auth/
+│       │   ├── [...nextauth]/route.ts  # Auth.js OIDC handlers (Entra ID, Login.gov, ID.me)
 │       │   ├── create-session/route.ts # PIN creation (admin)
 │       │   └── validate-pin/route.ts   # PIN validation (field teams)
 │       └── photos/
@@ -204,8 +210,8 @@ Page transitions use Framer Motion's `AnimatePresence` with directional sliding 
 
 ### 5.4 Admin Page (admin/page.tsx)
 
+- Entra ID SSO authentication (primary) with static token fallback
 - Two-step interface: login → dashboard
-- Admin token authentication via API
 - PIN generation with optional team name
 - Displays created PINs with copy-to-clipboard
 - Dark theme with ASPR branding
@@ -268,7 +274,8 @@ All API routes follow a consistent pattern:
 | Method | Route | Auth | Purpose |
 |---|---|---|---|
 | POST | `/api/auth/validate-pin` | None | Field team PIN login |
-| POST | `/api/auth/create-session` | Admin token | Create new PIN |
+| GET/POST | `/api/auth/[...nextauth]` | OIDC | Auth.js callback handlers (Entra ID, Login.gov, ID.me) |
+| POST | `/api/auth/create-session` | Entra ID or admin token | Create new PIN |
 | POST | `/api/photos/upload` | JWT Bearer | Upload photo with metadata |
 | GET | `/api/photos` | JWT Bearer | List session photos (signed URLs) |
 | DELETE | `/api/photos/[id]` | JWT Bearer | Delete photo (ownership verified) |
@@ -367,11 +374,13 @@ Azure Blob Storage
 
 | Component | Mechanism | Details |
 |---|---|---|
-| Field Team Auth | PIN + bcrypt | 6-digit PIN, 10 salt rounds, timing-safe |
-| Token Issuance | JWT HS256 | 24-hour expiration, sessionId payload |
-| Admin Auth | Static token | Timing-safe comparison, 30-min lockout |
+| Field Team Auth (PIN) | PIN + bcrypt | 6-digit PIN, 10 salt rounds, timing-safe |
+| Field Team Auth (SSO) | OIDC via Auth.js | Entra ID (HHS staff), Login.gov, ID.me (external) |
+| Token Issuance | JWT HS256 | 24-hour expiration, sessionId payload (all auth methods) |
+| Admin Auth | Entra ID SSO | OIDC + security group RBAC; static token fallback |
 | Image Access | HMAC-SHA256 | Signed URLs with expiry, no JWT needed |
 | PIN Generation | CSPRNG | `crypto.randomInt(100000, 999999)` |
+| OIDC State | Auth.js (NextAuth v5) | State, nonce, PKCE managed server-side |
 
 ### 8.2 Rate Limiting
 
@@ -478,3 +487,4 @@ Push to main → Build (standalone) → Upload artifact → Deploy to Azure App 
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-02-07 | HHS ASPR / Leidos | Initial system design document |
+| 1.1 | 2026-02-07 | HHS ASPR / Leidos | Multi-tier auth architecture: Entra ID SSO, Login.gov, ID.me OIDC; Auth.js integration; updated auth flows and API routes |

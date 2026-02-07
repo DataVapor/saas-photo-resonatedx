@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | System Name | ASPR Photo Repository |
-| Document Version | 1.0 |
+| Document Version | 1.1 |
 | Last Updated | 2026-02-07 |
 | Owner | HHS ASPR / Leidos |
 
@@ -21,10 +21,13 @@ https://app-aspr-photos-lab.azurewebsites.net
 
 ### 1.2 Authentication Methods
 
-| Method | Header | Used By |
+| Method | Header / Mechanism | Used By |
 |---|---|---|
-| JWT Bearer Token | `Authorization: Bearer <token>` | Field team photo operations |
-| Admin Token | `x-admin-token: <token>` | PIN creation and management |
+| JWT Bearer Token | `Authorization: Bearer <token>` | Field team photo operations (all auth methods) |
+| Entra ID SSO | Auth.js OIDC session | Admin access (primary); HHS staff upload |
+| Login.gov | Auth.js OIDC session | External responder upload |
+| ID.me | Auth.js OIDC session | External responder upload |
+| Admin Token (fallback) | `x-admin-token: <token>` | PIN creation when SSO unavailable |
 | Signed URL | Query params: `exp`, `sig` | Image proxy access |
 
 ### 1.3 Common Response Headers
@@ -36,6 +39,27 @@ All responses include security headers:
 ---
 
 ## 2. Authentication Endpoints
+
+### 2.0 GET/POST /api/auth/[...nextauth]
+
+Auth.js (NextAuth v5) OIDC callback handlers for SSO providers.
+
+**Supported Providers:**
+
+| Provider | Callback Path | Protocol |
+|---|---|---|
+| Microsoft Entra ID | `/api/auth/callback/microsoft-entra-id` | OIDC authorization code |
+| Login.gov | `/api/auth/callback/logingov` | OIDC (`private_key_jwt`) |
+| ID.me | `/api/auth/callback/idme` | OIDC + PKCE |
+
+**Session Flow:**
+1. User clicks SSO provider button on the welcome screen or admin page
+2. Redirected to provider's hosted login page (with MFA)
+3. Provider redirects back to callback URL with authorization code
+4. Auth.js exchanges code for ID token, creates server-side session
+5. Application issues a JWT Bearer token for subsequent API calls
+
+These routes are managed entirely by Auth.js and do not require manual implementation.
 
 ### 2.1 POST /api/auth/validate-pin
 
@@ -85,7 +109,7 @@ Create a new PIN and upload session (admin only).
 |---|---|
 | Method | POST |
 | Content-Type | application/json |
-| Authentication | `x-admin-token` header |
+| Authentication | Entra ID session or `x-admin-token` header (fallback) |
 | Rate Limit | 20 / 60s (creation); 3 / 60s + 30-min lockout (auth failures) |
 
 ```json
@@ -412,3 +436,4 @@ Retry-After: 900
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-02-07 | HHS ASPR / Leidos | Initial API and data reference |
+| 1.1 | 2026-02-07 | HHS ASPR / Leidos | Added OIDC Auth.js endpoints (Entra ID, Login.gov, ID.me); updated auth methods table |

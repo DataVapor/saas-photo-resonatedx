@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | System Name | ASPR Photo Repository |
-| Document Version | 1.0 |
+| Document Version | 1.1 |
 | Last Updated | 2026-02-07 |
 | Owner | HHS ASPR / Leidos |
 
@@ -86,7 +86,20 @@ Azure App Service (Linux, Node.js 22)
 | `SQL_DATABASE` | Database name | `aspr-photos-db` | Yes |
 | `AZURE_STORAGE_CONNECTION_STRING` | Blob Storage connection string | `DefaultEndpointsProtocol=https;...` | Yes |
 
-### 3.2 Optional Environment Variables
+### 3.2 OIDC Identity Provider Variables
+
+| Variable | Description | Required |
+|---|---|---|
+| `AUTH_SECRET` | Auth.js session encryption secret (32+ random chars) | Yes (for SSO) |
+| `AZURE_AD_CLIENT_ID` | Entra ID app registration client ID | Yes (for SSO) |
+| `AZURE_AD_CLIENT_SECRET` | Entra ID app registration client secret | Yes (for SSO) |
+| `AZURE_AD_TENANT_ID` | HHS Entra ID tenant ID | Yes (for SSO) |
+| `LOGINGOV_CLIENT_ID` | Login.gov OIDC client ID | For Login.gov |
+| `LOGINGOV_PRIVATE_KEY` | Login.gov `private_key_jwt` PEM key | For Login.gov |
+| `IDME_CLIENT_ID` | ID.me OIDC client ID | For ID.me |
+| `IDME_CLIENT_SECRET` | ID.me OIDC client secret | For ID.me |
+
+### 3.3 Optional Environment Variables
 
 | Variable | Description | Default |
 |---|---|---|
@@ -300,7 +313,40 @@ az keyvault set-policy \
 
 ---
 
-## 8. Monitoring & Troubleshooting
+## 8. Identity Provider Configuration
+
+### 8.1 Entra ID App Registration (Admin + Upload SSO)
+
+1. Register a new application in the Azure Portal (Entra ID > App registrations)
+2. Set **Supported account types** to "Accounts in this organizational directory only" (HHS tenant)
+3. Add redirect URI: `https://app-aspr-photos-lab.azurewebsites.net/api/auth/callback/microsoft-entra-id`
+4. For local development, add: `http://localhost:3000/api/auth/callback/microsoft-entra-id`
+5. Create a client secret under Certificates & secrets
+6. Under **Token configuration**, add optional claims: `email`, `preferred_username`
+7. Under **API permissions**, ensure `openid`, `profile`, `email` are granted
+8. Create a security group (e.g., "ASPR Photo Admins") and assign admin users
+9. Under **Token configuration**, add a `groups` claim to include security group IDs in the token
+
+### 8.2 Login.gov (External Responders)
+
+1. Create a team at the Login.gov Partner Dashboard (sandbox first)
+2. Register the application with redirect URI: `https://app-aspr-photos-lab.azurewebsites.net/api/auth/callback/logingov`
+3. Select `private_key_jwt` as the client authentication method
+4. Generate an RSA key pair and upload the public key to Login.gov
+5. Store the private key PEM in `LOGINGOV_PRIVATE_KEY` environment variable
+6. Select IAL level (IAL1 for self-asserted, IAL2 for identity-proofed)
+
+### 8.3 ID.me (External Responders)
+
+1. Register as a partner at the ID.me Developer Portal
+2. Configure OIDC with redirect URI: `https://app-aspr-photos-lab.azurewebsites.net/api/auth/callback/idme`
+3. Request `openid`, `profile`, `email` scopes
+4. Optionally request first responder group affiliation scope
+5. Store client ID and secret in environment variables
+
+---
+
+## 9. Monitoring & Troubleshooting
 
 ### 8.1 Application Logs
 
@@ -341,7 +387,7 @@ https://app-aspr-photos-lab.scm.azurewebsites.net/
 
 ---
 
-## 9. Backup & Recovery
+## 10. Backup & Recovery
 
 ### 9.1 Database Backup
 
@@ -362,7 +408,7 @@ https://app-aspr-photos-lab.scm.azurewebsites.net/
 
 ---
 
-## 10. Document Approval
+## 11. Document Approval
 
 | Role | Name | Signature | Date |
 |---|---|---|---|
@@ -375,3 +421,4 @@ https://app-aspr-photos-lab.scm.azurewebsites.net/
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-02-07 | HHS ASPR / Leidos | Initial deployment guide |
+| 1.1 | 2026-02-07 | HHS ASPR / Leidos | Added OIDC identity provider configuration (Entra ID, Login.gov, ID.me) |
