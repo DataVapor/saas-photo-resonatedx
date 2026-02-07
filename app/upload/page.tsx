@@ -30,8 +30,8 @@ export default function UploadPage() {
 
   // Check authentication on mount
   useEffect(() => {
-    const storedToken = sessionStorage.getItem('ndms_token')
-    const storedTeam = sessionStorage.getItem('ndms_team')
+    const storedToken = sessionStorage.getItem('aspr_token')
+    const storedTeam = sessionStorage.getItem('aspr_team')
 
     if (!storedToken) {
       router.push('/')

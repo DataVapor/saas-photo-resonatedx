@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * NDMS Admin CLI - PIN Management Tool
+ * ASPR Admin CLI - PIN Management Tool
  * 
  * Usage:
  *   node scripts/admin-cli.js create-pin "Team Name"
@@ -117,7 +117,7 @@ Expires:   7 days
 
 function printHelp() {
   log(`
-NDMS Admin CLI - PIN Management
+ASPR Admin CLI - PIN Management
 
 Usage:
   node scripts/admin-cli.js <command> [options]
@@ -143,7 +143,7 @@ Examples:
   ADMIN_TOKEN=my-token node scripts/admin-cli.js create-pins 10
   
   # Create PINs for production
-  API_URL=https://ndms-photos-lab.azurewebsites.net \\
+  API_URL=https://aspr-photos-lab.azurewebsites.net \\
   ADMIN_TOKEN=prod-token \\
   node scripts/admin-cli.js create-pins 5
   `, 'cyan')

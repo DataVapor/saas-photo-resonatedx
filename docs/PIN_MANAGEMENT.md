@@ -1,4 +1,4 @@
-# NDMS PIN Management - Admin Guide
+# ASPR PIN Management - Admin Guide
 
 ## Overview
 
@@ -21,7 +21,7 @@ Administrators have **three ways** to create PINs for field teams:
 
 2. **Production:**
    ```
-   https://ndms-photos-lab.azurewebsites.net/admin
+   https://aspr-photos-lab.azurewebsites.net/admin
    ```
 
 ### Create a PIN
@@ -102,7 +102,7 @@ PIN      │ Team
 ### Advanced: Production Deployment
 
 ```bash
-API_URL=https://ndms-photos-lab.azurewebsites.net \
+API_URL=https://aspr-photos-lab.azurewebsites.net \
 ADMIN_TOKEN=<from-key-vault> \
 node scripts/admin-cli.js create-pins 10
 ```
@@ -178,11 +178,11 @@ cat .env.local | grep ADMIN_TOKEN
 
 Retrieve from Azure Key Vault:
 ```bash
-az keyvault secret show --vault-name ndms-keyvault --name admin-token --query value -o tsv
+az keyvault secret show --vault-name aspr-keyvault --name admin-token --query value -o tsv
 ```
 
 Or from Azure Portal:
-1. Go to **Key Vault** → `ndms-keyvault`
+1. Go to **Key Vault** → `aspr-keyvault`
 2. Select **Secrets**
 3. Click **admin-token**
 4. Copy the value
@@ -223,8 +223,8 @@ Check application logs for audit trail:
 ```
 
 **Production (Azure Application Insights):**
-1. Go to **App Service** → `ndms-photos-lab`
-2. Click **Application Insights** → `ndms-ai`
+1. Go to **App Service** → `aspr-photos-lab`
+2. Click **Application Insights** → `aspr-ai`
 3. Go to **Logs** → Run query:
    ```kusto
    customEvents
@@ -301,7 +301,7 @@ For issues or questions:
 1. Check this guide (PIN Management section)
 2. Review the SECURITY.md file for rate limiting details
 3. Check Azure Application Insights logs
-4. Contact the NDMS team
+4. Contact the ASPR team
 
 ---
 
@@ -313,4 +313,4 @@ For issues or questions:
 | Create 10 PINs | `ADMIN_TOKEN=token node scripts/admin-cli.js create-pins 10` |
 | Access Dashboard | `http://localhost:3000/admin` |
 | Test API | `curl -H "x-admin-token: token" http://localhost:3000/api/auth/create-session` |
-| Get Production Token | `az keyvault secret show --vault-name ndms-keyvault --name admin-token` |
+| Get Production Token | `az keyvault secret show --vault-name aspr-keyvault --name admin-token` |

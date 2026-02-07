@@ -33,9 +33,9 @@ export default function LoginPage() {
 
       const { token, sessionId, teamName } = await res.json()
 
-      sessionStorage.setItem('ndms_token', token)
-      sessionStorage.setItem('ndms_session_id', sessionId)
-      sessionStorage.setItem('ndms_team', teamName)
+      sessionStorage.setItem('aspr_token', token)
+      sessionStorage.setItem('aspr_session_id', sessionId)
+      sessionStorage.setItem('aspr_team', teamName)
 
       router.push('/upload')
     } catch (err) {
@@ -61,8 +61,8 @@ export default function LoginPage() {
 
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-4">
-          {/* Logos */}
-          <div className="flex items-center justify-center gap-8 px-4">
+          {/* Logo */}
+          <div className="flex items-center justify-center px-4">
             <a href="https://aspr.hhs.gov" target="_blank" rel="noopener noreferrer" title="ASPR">
               <img
                 src="/aspr-logo-blue.png"
@@ -71,18 +71,10 @@ export default function LoginPage() {
                 className="hover:opacity-80 transition"
               />
             </a>
-            <a href="https://aspr.hhs.gov" target="_blank" rel="noopener noreferrer" title="NDMS">
-              <img
-                src="/ndms-logo.webp"
-                alt="NDMS Logo"
-                style={{ height: '68px', width: 'auto' }}
-                className="hover:opacity-80 transition"
-              />
-            </a>
           </div>
 
           <div>
-            <CardTitle className="text-3xl">NDMS Photo Repository</CardTitle>
+            <CardTitle className="text-3xl">ASPR Photo Repository</CardTitle>
             <CardDescription className="text-base mt-2">
               Secure photo upload for disaster response
             </CardDescription>
@@ -133,8 +125,8 @@ export default function LoginPage() {
           </form>
 
           <div className="pt-4 border-t border-gray-200 space-y-1 text-xs text-gray-600">
-            <p className="font-semibold">National Disaster Medical System</p>
-            <p>Administration for Strategic Preparedness and Response</p>
+            <p className="font-semibold">Administration for Strategic Preparedness and Response</p>
+            <p>U.S. Department of Health and Human Services</p>
           </div>
         </CardContent>
       </Card>

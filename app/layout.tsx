@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NDMS Photo Repository | ASPR",
-  description: "National Disaster Medical System Photo Repository - Administration for Strategic Preparedness and Response",
+  title: "ASPR Photo Repository",
+  description: "ASPR Photo Repository - Administration for Strategic Preparedness and Response",
 };
 
 export default function RootLayout({

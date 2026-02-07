@@ -1,4 +1,4 @@
-# NDMS Photo App - Comprehensive Security Implementation
+# ASPR Photo App - Comprehensive Security Implementation
 
 ## 🛡️ OWASP Top 10 (2021) - Implementation Status
 
@@ -181,7 +181,7 @@
 
 4. **API Key System** - Replace simple bearer tokens
    ```typescript
-   // Use structured API keys: ndms_<random_32_chars>
+   // Use structured API keys: aspr_<random_32_chars>
    // Store hashed versions in database with rate limit per key
    ```
 

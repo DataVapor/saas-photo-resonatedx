@@ -72,7 +72,7 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-gradient-to-br from-aspr-blue-dark to-aspr-blue-primary flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">NDMS Admin</CardTitle>
+            <CardTitle className="text-2xl">ASPR Admin</CardTitle>
             <CardDescription>PIN Management Portal</CardDescription>
           </CardHeader>
           <CardContent>

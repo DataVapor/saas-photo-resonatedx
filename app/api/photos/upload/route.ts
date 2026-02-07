@@ -117,7 +117,7 @@ export async function POST(req: Request) {
 
     // Upload to Azure Blob Storage
     const photoId = uuid()
-    const containerClient = getBlobClient().getContainerClient('ndms-photos')
+    const containerClient = getBlobClient().getContainerClient('aspr-photos')
 
     // Create container if it doesn't exist
     try {
