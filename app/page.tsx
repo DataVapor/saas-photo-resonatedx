@@ -121,26 +121,10 @@ function StepDots({ current }: { current: Step }) {
 }
 
 /* ─── Main Wizard ────────────────────────────────────── */
-const HERO_IMAGES = ['/hero-field.webp', '/hero-collage.webp'] as const
-
 export default function PhotoUploadWizard() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('welcome')
   const [direction, setDirection] = useState(1)
-  const [heroReady, setHeroReady] = useState(false)
-
-  // Preload hero images on mount so transitions are seamless
-  useEffect(() => {
-    let loaded = 0
-    HERO_IMAGES.forEach((src) => {
-      const img = new Image()
-      img.onload = img.onerror = () => {
-        loaded++
-        if (loaded === HERO_IMAGES.length) setHeroReady(true)
-      }
-      img.src = src
-    })
-  }, [])
 
   // Auth state
   const [pin, setPin] = useState<string[]>(Array(6).fill(''))
@@ -406,7 +390,9 @@ export default function PhotoUploadWizard() {
   const RING_CIRC = 2 * Math.PI * RING_R
 
   /* ─── Background image per step ───────────────────── */
-  const showHeroField = step === 'welcome' || step === 'success'
+  // Field image stays visible as base layer on PIN so collage can fade in ON TOP
+  // without a blank gap (no crossfade = no mid-transition transparency)
+  const showHeroField = step === 'welcome' || step === 'pin' || step === 'success'
   const showHeroCollage = step === 'pin'
 
   /* ═══════════════════════════════════════════════════════
@@ -421,39 +407,35 @@ export default function PhotoUploadWizard() {
         {/* Base gradient (always visible underneath) */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#031a36] via-[#062e61] to-[#155197]" />
 
-        {/* Hero field image — welcome + success */}
-        {heroReady && (
-          <div className={`absolute inset-0 overflow-hidden transition-opacity duration-500 ease-in-out ${showHeroField ? 'opacity-100' : 'opacity-0'}`}>
-            <img
-              src="/hero-field.webp"
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover animate-ken-burns"
-            />
-            {/* Gradient overlay — covers entire viewport, sits above the image */}
-            <div className={`absolute inset-0 z-10 transition-all duration-500 ${
-              step === 'success'
-                ? 'bg-gradient-to-b from-[#031a36]/70 via-emerald-950/60 to-[#062e61]'
-                : 'bg-gradient-to-b from-[#031a36]/40 via-[#062e61]/60 to-[#062e61]'
-            }`} />
-            <div className="absolute inset-0 z-10 bg-gradient-to-l from-[#031a36]/70 via-[#031a36]/20 to-transparent" />
-            <div className="absolute inset-0 z-10 hero-vignette" />
-          </div>
-        )}
+        {/* Hero field image — welcome + success (always mounted, GPU-composited) */}
+        <div className={`absolute inset-0 overflow-hidden will-change-[opacity] transition-opacity duration-350 ease-in-out ${showHeroField ? 'opacity-100' : 'opacity-0'}`}>
+          <img
+            src="/hero-field.webp"
+            alt=""
+            fetchPriority="high"
+            className="absolute inset-0 w-full h-full object-cover animate-ken-burns"
+          />
+          <div className={`absolute inset-0 z-10 transition-all duration-350 ${
+            step === 'success'
+              ? 'bg-gradient-to-b from-[#031a36]/70 via-emerald-950/60 to-[#062e61]'
+              : 'bg-gradient-to-b from-[#031a36]/40 via-[#062e61]/60 to-[#062e61]'
+          }`} />
+          <div className="absolute inset-0 z-10 bg-gradient-to-l from-[#031a36]/70 via-[#031a36]/20 to-transparent" />
+          <div className="absolute inset-0 z-10 hero-vignette" />
+        </div>
 
-        {/* Hero collage — PIN step */}
-        {heroReady && (
-          <div className={`absolute inset-0 overflow-hidden transition-opacity duration-500 ease-in-out ${showHeroCollage ? 'opacity-100' : 'opacity-0'}`}>
-            <img
-              src="/hero-collage.webp"
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover animate-ken-burns-delayed"
-            />
-            {/* Gradient overlay — covers entire viewport, sits above the image */}
-            <div className="absolute inset-0 z-10 bg-gradient-to-b from-[#031a36]/60 via-[#062e61]/75 to-[#062e61]" />
-            <div className="absolute inset-0 z-10 bg-gradient-to-l from-[#031a36]/80 via-[#031a36]/30 to-transparent" />
-            <div className="absolute inset-0 z-10 hero-vignette" />
-          </div>
-        )}
+        {/* Hero collage — PIN step (always mounted, GPU-composited) */}
+        <div className={`absolute inset-0 overflow-hidden will-change-[opacity] transition-opacity duration-350 ease-in-out ${showHeroCollage ? 'opacity-100' : 'opacity-0'}`}>
+          <img
+            src="/hero-collage.webp"
+            alt=""
+            fetchPriority="high"
+            className="absolute inset-0 w-full h-full object-cover animate-ken-burns-delayed"
+          />
+          <div className="absolute inset-0 z-10 bg-gradient-to-b from-[#031a36]/60 via-[#062e61]/75 to-[#062e61]" />
+          <div className="absolute inset-0 z-10 bg-gradient-to-l from-[#031a36]/80 via-[#031a36]/30 to-transparent" />
+          <div className="absolute inset-0 z-10 hero-vignette" />
+        </div>
       </div>
 
       {isDark && <Particles muted={showHeroField || showHeroCollage} />}
