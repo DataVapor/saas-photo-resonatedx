@@ -219,8 +219,8 @@ export default function GalleryPage() {
       >
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/aspr-logo-white.png" alt="ASPR" className="h-8 w-auto" />
-            <div className="h-5 w-px bg-white/25" />
+            <img src="/aspr-logo-white.png" alt="ASPR" className="h-10 w-auto drop-shadow-[0_0_12px_rgba(21,81,151,0.4)]" />
+            <div className="h-6 w-px bg-white/25" />
             <span className="text-sm font-medium text-white/70">Team: {teamName}</span>
           </div>
           <div className="flex items-center gap-3">

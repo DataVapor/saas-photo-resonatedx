@@ -95,10 +95,10 @@ export async function POST(req: Request) {
     const buffer = await file.arrayBuffer()
     const imageBuffer = Buffer.from(buffer)
 
-    // Get image metadata
+    // Get image metadata including EXIF (GPS data preserved for disaster response)
     const metadata = await sharp(imageBuffer).metadata()
 
-    // Generate thumbnail
+    // Generate thumbnail (WebP re-encode inherently strips EXIF)
     const thumbnail = await sharp(imageBuffer)
       .resize(400, 300, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 80 })
@@ -154,6 +154,27 @@ export async function POST(req: Request) {
         incidentId,
       }
     )
+
+    // Persist EXIF data (GPS, camera info) to photo_exif table
+    try {
+      const exif = metadata.exif ? JSON.parse(JSON.stringify(metadata)) : null
+      await query(
+        `INSERT INTO photo_exif
+         (photo_id, camera_make, camera_model, orientation, date_taken_exif, software, raw_json)
+         VALUES (@photoId, @make, @model, @orientation, @dateTaken, @software, @raw)`,
+        {
+          photoId,
+          make: (exif?.exif as any)?.Make || null,
+          model: (exif?.exif as any)?.Model || null,
+          orientation: metadata.orientation || null,
+          dateTaken: (exif?.exif as any)?.DateTimeOriginal || null,
+          software: (exif?.exif as any)?.Software || null,
+          raw: exif ? JSON.stringify({ format: metadata.format, density: metadata.density, hasAlpha: metadata.hasAlpha, space: metadata.space }) : null,
+        }
+      )
+    } catch {
+      // Non-critical — photo saved, EXIF insert is best-effort
+    }
 
     return Response.json({
       success: true,

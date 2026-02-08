@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Camera, MapPin, LogOut, Shield, ChevronRight, ChevronLeft, ArrowRight,
+  Camera, MapPin, LogOut, ChevronRight, ChevronLeft, ArrowRight,
   Upload, CheckCircle2, X, Loader2,
   AlertCircle, ImagePlus, Send, RotateCcw, Locate,
   Image as ImageIcon,
@@ -445,8 +445,8 @@ export default function PhotoUploadWizard() {
         >
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/aspr-logo-white.png" alt="ASPR" className="h-8 w-auto" />
-              <div className="h-5 w-px bg-white/25" />
+              <img src="/aspr-logo-white.png" alt="ASPR" className="h-10 w-auto drop-shadow-[0_0_12px_rgba(21,81,151,0.4)]" />
+              <div className="h-6 w-px bg-white/25" />
               <span className="text-sm font-medium text-white/70">Team: {teamName}</span>
             </div>
             <div className="flex items-center gap-3">
@@ -560,23 +560,18 @@ export default function PhotoUploadWizard() {
               animate="animate"
               className="text-center space-y-6 w-full max-w-sm"
             >
-              {/* Back */}
-              <motion.button
-                variants={slideUp}
-                onClick={() => goTo('welcome')}
-                whileHover={{ x: -2 }}
-                whileTap={{ scale: 0.9 }}
-                className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08]
-                  flex items-center justify-center mx-auto
-                  text-white/40 hover:text-white/80 hover:bg-white/[0.1] hover:border-white/15
-                  transition-all"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </motion.button>
+              {/* ASPR logo */}
+              <motion.div variants={slideUp}>
+                <img
+                  src="/aspr-logo-white.png"
+                  alt="ASPR"
+                  className="h-14 md:h-16 lg:h-20 mx-auto drop-shadow-[0_0_30px_rgba(21,81,151,0.5)]"
+                />
+              </motion.div>
 
-              {/* Icon / Success checkmark */}
-              <motion.div variants={popIn}>
-                {pinValid ? (
+              {/* Success checkmark */}
+              {pinValid && (
+                <motion.div variants={popIn}>
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
@@ -584,14 +579,8 @@ export default function PhotoUploadWizard() {
                   >
                     <CheckCircle2 className="w-14 h-14 text-emerald-400 mx-auto drop-shadow-[0_0_20px_rgba(52,211,153,0.5)]" />
                   </motion.div>
-                ) : (
-                  <div className="w-14 h-14 rounded-lg bg-white/[0.05] border border-white/[0.08]
-                    flex items-center justify-center mx-auto
-                    shadow-[0_0_30px_rgba(96,165,250,0.12)]">
-                    <Shield className="w-6 h-6 text-blue-300/70" />
-                  </div>
-                )}
-              </motion.div>
+                </motion.div>
+              )}
 
               {/* Title */}
               <motion.div variants={slideUp} className="space-y-2">
@@ -664,6 +653,22 @@ export default function PhotoUploadWizard() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                   Verifying&hellip;
                 </motion.p>
+              )}
+
+              {/* Back */}
+              {!pinValid && (
+                <motion.button
+                  variants={slideUp}
+                  onClick={() => goTo('welcome')}
+                  whileHover={{ x: -2 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08]
+                    flex items-center justify-center mx-auto
+                    text-white/40 hover:text-white/80 hover:bg-white/[0.1] hover:border-white/15
+                    transition-all"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </motion.button>
               )}
             </motion.div>
           </motion.div>
@@ -1060,10 +1065,10 @@ export default function PhotoUploadWizard() {
               {/* ASPR logo */}
               <motion.div
                 initial={{ opacity: 0 }}
-                animate={{ opacity: 0.3 }}
+                animate={{ opacity: 0.6 }}
                 transition={{ delay: 0.3 }}
               >
-                <img src="/aspr-logo-white.png" alt="" className="h-8 mx-auto" />
+                <img src="/aspr-logo-white.png" alt="ASPR" className="h-12 lg:h-14 mx-auto drop-shadow-[0_0_20px_rgba(21,81,151,0.4)]" />
               </motion.div>
 
               {/* Progress ring */}
@@ -1181,7 +1186,7 @@ export default function PhotoUploadWizard() {
             >
               {/* ASPR logo */}
               <motion.div variants={slideUp}>
-                <img src="/aspr-logo-white.png" alt="" className="h-8 lg:h-10 mx-auto opacity-30" />
+                <img src="/aspr-logo-white.png" alt="ASPR" className="h-12 lg:h-14 mx-auto opacity-60 drop-shadow-[0_0_20px_rgba(21,81,151,0.4)]" />
               </motion.div>
 
               {/* Success icon */}
