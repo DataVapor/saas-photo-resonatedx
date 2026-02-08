@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Camera, MapPin, LogOut, Shield, ChevronRight,
+  Camera, MapPin, LogOut, Shield, ChevronRight, ChevronLeft, ArrowRight,
   Upload, CheckCircle2, X, Loader2,
   AlertCircle, ImagePlus, Send, RotateCcw, Locate,
   Image as ImageIcon,
@@ -28,20 +28,20 @@ const EASE_IN = [0.4, 0, 1, 1] as const
 const pageVariants = {
   enter: (d: number) => ({
     x: d > 0 ? '100%' : '-100%',
-    y: d > 0 ? 40 : 0,
-    opacity: 0,
+    y: d > 0 ? 20 : 0,
+    opacity: 1,
   }),
   center: {
     x: 0,
     y: 0,
     opacity: 1,
-    transition: { duration: 0.35, ease: EASE_OUT },
+    transition: { duration: 0.3, ease: EASE_OUT },
   },
   exit: (d: number) => ({
     x: d < 0 ? '100%' : '-100%',
     y: 0,
-    opacity: 0,
-    transition: { duration: 0.25, ease: EASE_IN },
+    opacity: 1,
+    transition: { duration: 0.2, ease: EASE_IN },
   }),
 }
 
@@ -133,6 +133,7 @@ export default function PhotoUploadWizard() {
   const [authError, setAuthError] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
   const [pinValid, setPinValid] = useState(false)
+  const [showPreloader, setShowPreloader] = useState(true)
 
   // Photos
   const [photos, setPhotos] = useState<PhotoFile[]>([])
@@ -163,6 +164,7 @@ export default function PhotoUploadWizard() {
       setToken(t)
       setTeamName(team || 'Anonymous')
       setStep('photos')
+      setShowPreloader(false)
     }
   }, [])
 
@@ -389,56 +391,49 @@ export default function PhotoUploadWizard() {
   const RING_R = 52
   const RING_CIRC = 2 * Math.PI * RING_R
 
-  /* ─── Background image per step ───────────────────── */
-  // Field image stays visible as base layer on PIN so collage can fade in ON TOP
-  // without a blank gap (no crossfade = no mid-transition transparency)
-  const showHeroField = step === 'welcome' || step === 'pin' || step === 'success'
-  const showHeroCollage = step === 'pin'
+  /* ─── Background ───────────────────────────────────── */
+  const showHero = step === 'welcome' || step === 'pin' || step === 'success'
 
   /* ═══════════════════════════════════════════════════════
      RENDER
      ═══════════════════════════════════════════════════════ */
   return (
     <div
-      className="min-h-screen relative overflow-hidden bg-[#031a36]"
+      className="h-screen relative overflow-hidden bg-[#031a36]"
     >
-      {/* ─── Background layers ─── */}
+      {/* ─── Background layers ───
+           Image is ALWAYS mounted & visible — never changes opacity.
+           Visibility is controlled by the gradient curtain above it:
+           hero steps → semi-transparent gradient (image shows through)
+           other steps → fully opaque gradient (image hidden)         ─── */}
       <div className="absolute inset-0 z-0">
-        {/* Base gradient (always visible underneath) */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#031a36] via-[#062e61] to-[#155197]" />
-
-        {/* Hero field image — welcome + success (always mounted, GPU-composited) */}
-        <div className={`absolute inset-0 overflow-hidden will-change-[opacity] transition-opacity duration-350 ease-in-out ${showHeroField ? 'opacity-100' : 'opacity-0'}`}>
+        {/* Layer 0: Hero image — always rendered, always animating */}
+        <div className="absolute inset-0 overflow-hidden">
           <img
             src="/hero-field.webp"
             alt=""
             fetchPriority="high"
             className="absolute inset-0 w-full h-full object-cover animate-ken-burns"
           />
-          <div className={`absolute inset-0 z-10 transition-all duration-350 ${
-            step === 'success'
-              ? 'bg-gradient-to-b from-[#031a36]/70 via-emerald-950/60 to-[#062e61]'
-              : 'bg-gradient-to-b from-[#031a36]/40 via-[#062e61]/60 to-[#062e61]'
-          }`} />
-          <div className="absolute inset-0 z-10 bg-gradient-to-l from-[#031a36]/70 via-[#031a36]/20 to-transparent" />
-          <div className="absolute inset-0 z-10 hero-vignette" />
         </div>
 
-        {/* Hero collage — PIN step (always mounted, GPU-composited) */}
-        <div className={`absolute inset-0 overflow-hidden will-change-[opacity] transition-opacity duration-350 ease-in-out ${showHeroCollage ? 'opacity-100' : 'opacity-0'}`}>
-          <img
-            src="/hero-collage.webp"
-            alt=""
-            fetchPriority="high"
-            className="absolute inset-0 w-full h-full object-cover animate-ken-burns-delayed"
-          />
-          <div className="absolute inset-0 z-10 bg-gradient-to-b from-[#031a36]/60 via-[#062e61]/75 to-[#062e61]" />
-          <div className="absolute inset-0 z-10 bg-gradient-to-l from-[#031a36]/80 via-[#031a36]/30 to-transparent" />
-          <div className="absolute inset-0 z-10 hero-vignette" />
+        {/* Layer 1: Gradient curtain — only this transitions, never the image */}
+        <div className={`absolute inset-0 z-10 transition-all duration-500 ease-in-out ${
+          step === 'success'
+            ? 'bg-gradient-to-b from-[#031a36]/70 via-emerald-950/60 to-[#062e61]'
+            : showHero
+              ? 'bg-gradient-to-b from-[#031a36]/40 via-[#062e61]/60 to-[#062e61]'
+              : 'bg-gradient-to-br from-[#031a36] via-[#062e61] to-[#155197]'
+        }`} />
+
+        {/* Layer 2: Edge darken — only visible on hero steps */}
+        <div className={`absolute inset-0 z-10 transition-opacity duration-500 ${showHero ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="absolute inset-0 bg-gradient-to-l from-[#031a36]/70 via-[#031a36]/20 to-transparent" />
+          <div className="absolute inset-0 hero-vignette" />
         </div>
       </div>
 
-      {isDark && <Particles muted={showHeroField || showHeroCollage} />}
+      {isDark && <Particles muted={showHero} />}
 
       {/* ─── Branded header (light steps) ─── */}
       {(step === 'photos' || step === 'metadata') && (
@@ -446,7 +441,7 @@ export default function PhotoUploadWizard() {
           initial={{ y: -64 }}
           animate={{ y: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="sticky top-0 z-50 bg-gradient-to-r from-[#062e61] to-[#155197] text-white px-4 py-3 shadow-2xl shadow-[#062e61]/30"
+          className="fixed top-0 inset-x-0 z-50 bg-gradient-to-r from-[#062e61] to-[#155197] text-white px-4 py-3 shadow-2xl shadow-[#062e61]/30"
         >
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -475,7 +470,7 @@ export default function PhotoUploadWizard() {
       )}
 
       {/* ─── Step content ─── */}
-      <AnimatePresence mode="wait" custom={direction}>
+      <AnimatePresence custom={direction}>
         {/* ═══ WELCOME ═══ */}
         {step === 'welcome' && (
           <motion.div
@@ -483,8 +478,8 @@ export default function PhotoUploadWizard() {
             custom={direction}
             initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
-            exit={{ x: '-100%', opacity: 0, transition: { duration: 0.25, ease: EASE_IN } }}
-            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
+            exit={{ x: '-100%', opacity: 1, transition: { duration: 0.2, ease: EASE_IN } }}
+            className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
           >
             <motion.div
               variants={stagger}
@@ -524,14 +519,16 @@ export default function PhotoUploadWizard() {
               <motion.div variants={slideUp}>
                 <motion.button
                   onClick={() => goTo('pin')}
-                  whileHover={{ y: -2, boxShadow: '0 0 30px rgba(255,255,255,0.15)' }}
-                  whileTap={{ y: 0 }}
-                  className="inline-flex items-center gap-2.5 bg-white/90 backdrop-blur-sm text-[#062e61]
-                    px-7 py-3.5 rounded-lg font-semibold text-base
-                    border border-white/30 shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-all"
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-full
+                    bg-white/[0.1] backdrop-blur-md text-white font-medium text-base
+                    border border-white/20 shadow-[0_0_40px_rgba(255,255,255,0.04)]
+                    hover:bg-white/[0.16] hover:border-white/30
+                    hover:shadow-[0_0_50px_rgba(255,255,255,0.08)] transition-all"
                 >
                   Get Started
-                  <ChevronRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                 </motion.button>
               </motion.div>
 
@@ -555,7 +552,7 @@ export default function PhotoUploadWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
+            className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
           >
             <motion.div
               variants={stagger}
@@ -567,9 +564,14 @@ export default function PhotoUploadWizard() {
               <motion.button
                 variants={slideUp}
                 onClick={() => goTo('welcome')}
-                className="text-blue-300/50 hover:text-white transition text-sm"
+                whileHover={{ x: -2 }}
+                whileTap={{ scale: 0.9 }}
+                className="w-9 h-9 rounded-full bg-white/[0.06] border border-white/[0.08]
+                  flex items-center justify-center mx-auto
+                  text-white/40 hover:text-white/80 hover:bg-white/[0.1] hover:border-white/15
+                  transition-all"
               >
-                &larr; Back
+                <ChevronLeft className="w-4 h-4" />
               </motion.button>
 
               {/* Icon / Success checkmark */}
@@ -583,8 +585,10 @@ export default function PhotoUploadWizard() {
                     <CheckCircle2 className="w-14 h-14 text-emerald-400 mx-auto drop-shadow-[0_0_20px_rgba(52,211,153,0.5)]" />
                   </motion.div>
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-white/[0.07] backdrop-blur-sm border border-white/10 flex items-center justify-center mx-auto">
-                    <Shield className="w-7 h-7 text-blue-300/80" />
+                  <div className="w-14 h-14 rounded-lg bg-white/[0.05] border border-white/[0.08]
+                    flex items-center justify-center mx-auto
+                    shadow-[0_0_30px_rgba(96,165,250,0.12)]">
+                    <Shield className="w-6 h-6 text-blue-300/70" />
                   </div>
                 )}
               </motion.div>
@@ -674,7 +678,7 @@ export default function PhotoUploadWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="h-[calc(100vh-56px)] flex flex-col"
+            className="absolute inset-0 pt-14 flex flex-col z-10"
           >
             <div className="max-w-2xl mx-auto w-full px-4 py-4 flex flex-col flex-1 min-h-0">
               {/* Drop zone + camera — compact row */}
@@ -880,7 +884,7 @@ export default function PhotoUploadWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="h-[calc(100vh-56px)] flex flex-col"
+            className="absolute inset-0 pt-14 flex flex-col z-10"
           >
             <div className="max-w-2xl mx-auto px-4 py-4 flex flex-col flex-1 min-h-0">
               {/* Photo strip */}
@@ -1050,7 +1054,7 @@ export default function PhotoUploadWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
+            className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
           >
             <div className="text-center space-y-6">
               {/* ASPR logo */}
@@ -1164,7 +1168,7 @@ export default function PhotoUploadWizard() {
             initial="enter"
             animate="center"
             exit="exit"
-            className="min-h-screen flex flex-col items-center justify-center px-6 relative z-10"
+            className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
           >
             {/* Celebration particles */}
             <SuccessParticles />
@@ -1242,6 +1246,44 @@ export default function PhotoUploadWizard() {
           <StepDots current={step} />
         </div>
       )}
+
+      {/* ─── Logo Preloader ─── */}
+      <AnimatePresence>
+        {showPreloader && (
+          <motion.div
+            key="preloader"
+            className="absolute inset-0 z-[9999] flex flex-col items-center justify-center bg-[#062e61]"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.7, ease: [0.7, 0.2, 0.2, 1] }}
+          >
+            <motion.img
+              src="/aspr-logo-white.png"
+              alt="ASPR"
+              className="h-16 md:h-20 lg:h-24 drop-shadow-[0_0_40px_rgba(21,81,151,0.6)]"
+              initial={{ opacity: 0, y: 80 }}
+              animate={{ opacity: [0, 1, 1, 0], y: [80, 0, 0, -80] }}
+              transition={{
+                duration: 2,
+                times: [0, 0.3, 0.7, 1],
+                ease: [0.7, 0.2, 0.2, 1],
+              }}
+              onAnimationComplete={() => setShowPreloader(false)}
+            />
+            <motion.p
+              className="text-xs text-white/30 tracking-widest uppercase mt-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: [0, 0, 0.5, 0.5, 0] }}
+              transition={{
+                duration: 2,
+                times: [0, 0.25, 0.4, 0.7, 1],
+                ease: 'easeInOut',
+              }}
+            >
+              Photo Repository
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
