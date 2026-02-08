@@ -135,6 +135,12 @@ export default function PhotoUploadWizard() {
   const [pinValid, setPinValid] = useState(false)
   const [showPreloader, setShowPreloader] = useState(true)
 
+  // Reliable preloader dismissal — timer-based, not animation-dependent
+  useEffect(() => {
+    const timer = setTimeout(() => setShowPreloader(false), 2200)
+    return () => clearTimeout(timer)
+  }, [])
+
   // Photos
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [dragOver, setDragOver] = useState(false)
@@ -1259,33 +1265,16 @@ export default function PhotoUploadWizard() {
             key="preloader"
             className="absolute inset-0 z-[9999] flex flex-col items-center justify-center bg-[#062e61]"
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.7, ease: [0.7, 0.2, 0.2, 1] }}
+            transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
           >
-            <motion.img
+            <img
               src="/aspr-logo-white.png"
               alt="ASPR"
-              className="h-16 md:h-20 lg:h-24 drop-shadow-[0_0_40px_rgba(21,81,151,0.6)]"
-              initial={{ opacity: 0, y: 80 }}
-              animate={{ opacity: [0, 1, 1, 0], y: [80, 0, 0, -80] }}
-              transition={{
-                duration: 2,
-                times: [0, 0.3, 0.7, 1],
-                ease: [0.7, 0.2, 0.2, 1],
-              }}
-              onAnimationComplete={() => setShowPreloader(false)}
+              className="h-16 md:h-20 lg:h-24 drop-shadow-[0_0_40px_rgba(21,81,151,0.6)] animate-preloader-logo"
             />
-            <motion.p
-              className="text-xs text-white/30 tracking-widest uppercase mt-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0, 0.5, 0.5, 0] }}
-              transition={{
-                duration: 2,
-                times: [0, 0.25, 0.4, 0.7, 1],
-                ease: 'easeInOut',
-              }}
-            >
+            <p className="text-xs text-white/30 tracking-widest uppercase mt-6 animate-preloader-text">
               Photo Repository
-            </motion.p>
+            </p>
           </motion.div>
         )}
       </AnimatePresence>

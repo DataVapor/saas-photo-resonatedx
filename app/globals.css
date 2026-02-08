@@ -127,6 +127,30 @@ body {
   animation-delay: -8s;
 }
 
+/* Preloader — CSS keyframes so animation starts instantly, no JS hydration wait */
+@keyframes preloader-logo {
+  0%   { opacity: 0; transform: translateY(40px); }
+  25%  { opacity: 1; transform: translateY(0); }
+  70%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-30px); }
+}
+
+@keyframes preloader-text {
+  0%   { opacity: 0; }
+  30%  { opacity: 0; }
+  45%  { opacity: 0.5; }
+  70%  { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+.animate-preloader-logo {
+  animation: preloader-logo 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-preloader-text {
+  animation: preloader-text 2s ease-in-out forwards;
+}
+
 /* Vignette — darkens all edges (especially right), lighter in center-left */
 .hero-vignette {
   background: radial-gradient(ellipse at 35% 45%, transparent 10%, rgba(3, 26, 54, 0.8) 100%);
