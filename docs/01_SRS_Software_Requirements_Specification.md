@@ -97,7 +97,7 @@ PIN-based authentication is the primary field authentication method, designed fo
 - The system SHALL support role-based access control via Entra ID security groups (e.g., "ASPR Photo Admins").
 - The system SHALL use Auth.js (NextAuth v5) with the Microsoft Entra ID provider for OIDC integration.
 - The admin Entra ID app registration SHALL be configured with redirect URI `/api/auth/callback/microsoft-entra-id`.
-- The system SHALL fall back to static admin token authentication (`x-admin-token` header with `crypto.timingSafeEqual`) when Entra ID is unavailable or not configured.
+- The system SHALL require Microsoft Entra ID SSO for all administrative access.
 - Admin authorization SHALL be enforced via `lib/adminAuth.ts` which returns an `AdminContext` with auth method and identity.
 
 #### FR-2.1.3 Entra ID Upload Authentication (HHS Staff)
@@ -292,7 +292,7 @@ For non-HHS responders (state/local government, contractors, volunteers) who do 
 - `DELETE /api/admin/photos/[id]` SHALL delete a photo and all renditions.
 - `POST /api/admin/photos/upload` SHALL handle admin bulk uploads with EXIF extraction.
 - `POST /api/admin/migrate` SHALL run database schema migrations.
-- All admin endpoints SHALL require Entra ID authentication or fallback `x-admin-token` header.
+- All admin endpoints SHALL require Entra ID SSO authentication.
 
 #### FR-2.4.10 Audit Logging
 - All admin operations SHALL be logged to the `admin_audit_log` table.
@@ -334,7 +334,6 @@ The system SHALL log security events: AUTH_SUCCESS, AUTH_FAILURE, PIN_CREATED, U
 #### NFR-3.1.5 Cryptographic Security
 - PINs SHALL be generated using CSPRNG (NIST SP 800-63B).
 - PINs SHALL be stored as bcrypt hashes (10 salt rounds).
-- Admin token comparison SHALL use `crypto.timingSafeEqual`.
 - Image URLs SHALL use HMAC-SHA256 signatures.
 
 #### NFR-3.1.6 Web Application Firewall
@@ -503,7 +502,7 @@ The system SHALL log security events: AUTH_SUCCESS, AUTH_FAILURE, PIN_CREATED, U
 | entity_type | VARCHAR(50) | NOT NULL | Entity: photo, session, tag |
 | entity_id | NVARCHAR(36) | NOT NULL | Target entity ID |
 | action | VARCHAR(50) | NOT NULL | Action performed |
-| performed_by | NVARCHAR(255) | NOT NULL | Admin email or 'admin-token' |
+| performed_by | NVARCHAR(255) | NOT NULL | Admin email or 'entra-user' |
 | ip_address | VARCHAR(45) | NULL | Client IP address |
 | details | NVARCHAR(MAX) | NULL | Additional context JSON |
 | created_at | DATETIME | DEFAULT GETDATE() | Event timestamp |
@@ -569,10 +568,10 @@ Create a new PIN (admin only).
 
 | Property | Details |
 |---|---|
-| Auth | Entra ID session or `x-admin-token` header (fallback) |
+| Auth | Entra ID session (required) |
 | Request Body | `{ "teamName": "Team A" }` (optional) |
 | Success (200) | `{ "id": "uuid", "pin": "654321", "team_name": "Team A" }` |
-| Errors | 401 (invalid admin token), 429 (rate limited) |
+| Errors | 401 (unauthenticated), 429 (rate limited) |
 
 ### 5.2 Photo Endpoints (Field Teams)
 
@@ -620,7 +619,7 @@ List photos with cursor-based pagination and filtering.
 
 | Property | Details |
 |---|---|
-| Auth | Entra ID session or `x-admin-token` header |
+| Auth | Entra ID session (required) |
 | Query Params | `cursor`, `limit` (max 100), `search`, `incident`, `status`, `dateFrom`, `dateTo`, `sessionId`, `tags`, `sort` |
 | Success (200) | `{ "photos": [...], "total": 500, "nextCursor": "base64..." }` |
 
@@ -718,7 +717,7 @@ Run database schema migrations.
 
 | Property | Details |
 |---|---|
-| Auth | Admin (`x-admin-token` header) |
+| Auth | Admin (Entra ID session) |
 | Success (200) | `{ "success": true, "migrations": [...] }` |
 
 #### GET /api/health

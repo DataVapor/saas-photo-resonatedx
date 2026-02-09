@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | System Name | ASPR Photo Repository |
-| Document Version | 2.0 |
-| Last Updated | 2026-02-07 |
+| Document Version | 2.1 |
+| Last Updated | 2026-02-09 |
 | Owner | HHS ASPR / Leidos |
 
 ---
@@ -95,7 +95,6 @@ Azure VNet ───────────────────────
 | Variable | Description | Example | Required |
 |---|---|---|---|
 | `JWT_SECRET` | Secret key for JWT signing | (32+ random chars) | Yes |
-| `ADMIN_TOKEN` | Admin authentication token | (32+ random chars) | Yes |
 | `SQL_SERVER` | Azure SQL server hostname | `server.database.windows.net` | Yes |
 | `SQL_DATABASE` | Database name | `aspr-photos-db` | Yes |
 | `AZURE_STORAGE_CONNECTION_STRING` | Blob Storage connection string | `DefaultEndpointsProtocol=https;...` | Yes |
@@ -130,7 +129,6 @@ All runtime secrets are stored in Azure Key Vault with the `ASPRPHOTOS--` prefix
 | Key Vault Secret Name | Maps To |
 |---|---|
 | `ASPRPHOTOS--JWT-SECRET` | JWT_SECRET |
-| `ASPRPHOTOS--ADMIN-TOKEN` | ADMIN_TOKEN |
 | `ASPRPHOTOS--AUTH-SECRET` | AUTH_SECRET |
 | `ASPRPHOTOS--AZURE-AD-CLIENT-SECRET` | AZURE_AD_CLIENT_SECRET |
 
@@ -150,7 +148,6 @@ MSYS_NO_PATHCONV=1 az webapp config appsettings set \
   --name app-aspr-photos \
   --settings \
     JWT_SECRET="@Microsoft.KeyVault(SecretUri=...)" \
-    ADMIN_TOKEN="@Microsoft.KeyVault(SecretUri=...)" \
     SQL_SERVER="server.database.windows.net" \
     SQL_DATABASE="aspr-photos-db" \
     AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=..." \
@@ -409,9 +406,16 @@ Azure SQL is VNet-restricted and cannot be accessed directly from local machines
 
 **Option A: Post-Deploy Migration Endpoint (Recommended)**
 
+The `/api/admin/migrate` endpoint requires Microsoft Entra ID SSO authentication (admin role). To trigger it:
+
+1. Sign in to the admin dashboard at `https://cdn-asprphotos-app-chfxezh3dzc6chgx.a01.azurefd.net/admin`
+2. Navigate to the migration page or trigger the endpoint from the admin UI
+3. Alternatively, use a browser-based REST client with your active Entra ID session cookie:
+
 ```bash
+# Cookie-based auth — obtain session cookie by signing in via browser first
 curl -X POST https://cdn-asprphotos-app-chfxezh3dzc6chgx.a01.azurefd.net/api/admin/migrate \
-  -H "x-admin-token: <ADMIN_TOKEN>"
+  -H "Cookie: authjs.session-token=<YOUR_SESSION_COOKIE>"
 ```
 
 The `/api/admin/migrate` endpoint runs all pending schema migrations idempotently (uses `IF NOT EXISTS` checks).
@@ -512,11 +516,12 @@ The workflow file `.github/workflows/main_app-ndms-photos-lab.yml` deploys autom
 
 **Post-Deploy Migration:**
 
-After a successful deploy, trigger schema migrations:
+After a successful deploy, trigger schema migrations. This endpoint requires Microsoft Entra ID admin authentication (cookie-based session):
 
 ```bash
+# Sign in via browser first to obtain session cookie, then:
 curl -X POST https://cdn-asprphotos-app-chfxezh3dzc6chgx.a01.azurefd.net/api/admin/migrate \
-  -H "x-admin-token: <ADMIN_TOKEN>"
+  -H "Cookie: authjs.session-token=<YOUR_SESSION_COOKIE>"
 ```
 
 **Startup Command:** `node server.js` (configured on App Service, not in workflow)
@@ -668,7 +673,7 @@ MSYS_NO_PATHCONV=1 az webapp log tail \
 | Front Door 502/504 | Private Link not approved or not propagated | Approve Private Endpoint connections; wait 10–15 min |
 | CDN returns stale images | Cache not purged | Purge Front Door cache for `/renditions/*` |
 | Deploy fails (403 on SCM) | publicNetworkAccess disabled | Enable publicNetworkAccess on App Service |
-| Post-deploy migration fails | ADMIN_TOKEN mismatch | Verify token matches Key Vault secret |
+| Post-deploy migration fails | Entra ID session expired or user lacks admin role | Sign in to admin dashboard to obtain a fresh session, then retry |
 | Build fails on Sharp | Missing native dependencies | Ensure `sharp` install completes in CI |
 | Git Bash path expansion | `/path` expanded to `C:/Users/.../Git/path` | Prefix commands with `MSYS_NO_PATHCONV=1` |
 
@@ -737,3 +742,4 @@ https://app-aspr-photos.scm.azurewebsites.net/
 | 1.0 | 2026-02-07 | HHS ASPR / Leidos | Initial deployment guide |
 | 1.1 | 2026-02-07 | HHS ASPR / Leidos | Added OIDC identity provider configuration (Entra ID, Login.gov, ID.me) |
 | 2.0 | 2026-02-07 | HHS ASPR / Leidos | Post Phase 6 deployment: Azure Front Door Premium setup (CDN endpoints, WAF, Private Link, health probe); expanded database schema (8 tables + view + 10 indexes); CI/CD pipeline details (GitHub Actions, publish profile, post-deploy migration); Key Vault secret management workflow; App Service access restrictions; CDN delivery paths; Front Door monitoring and troubleshooting |
+| 2.1 | 2026-02-09 | HHS ASPR / Leidos | Removed ADMIN_TOKEN references — admin authentication now uses Microsoft Entra ID SSO exclusively (no token fallback); updated migration endpoint instructions to use cookie-based session auth |

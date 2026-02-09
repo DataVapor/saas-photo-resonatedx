@@ -4,7 +4,7 @@
 
 ### 1. Broken Access Control
 - ✅ **IMPLEMENTED**: JWT token verification on all protected endpoints
-- ✅ **IMPLEMENTED**: Admin token validation on PIN creation endpoint
+- ✅ **IMPLEMENTED**: Entra ID SSO required for PIN creation
 - ✅ **IMPLEMENTED**: Session-based access control (token required for uploads)
 - ✅ **IMPLEMENTED**: IP-based rate limiting prevents unauthorized access attempts
 
@@ -34,7 +34,7 @@
 ### 5. Security Misconfiguration
 - ✅ **IMPLEMENTED**: Removed debug logging from production code
 - ✅ **IMPLEMENTED**: Environment-specific configurations (.env.local excluded from git)
-- ✅ **IMPLEMENTED**: No default credentials (ADMIN_TOKEN required)
+- ✅ **IMPLEMENTED**: No default credentials (Entra ID SSO required)
 - ⚠️ **TODO**: Configure Azure security headers (see next section)
 
 ### 6. Vulnerable and Outdated Components
@@ -75,7 +75,7 @@
 - ✅ **IMPLEMENTED**: Users can only upload to their own session
 
 ### API2: Broken Authentication
-- ✅ **IMPLEMENTED**: All endpoints require valid JWT or ADMIN_TOKEN
+- ✅ **IMPLEMENTED**: All endpoints require valid JWT or Entra ID session
 - ✅ **IMPLEMENTED**: Rate limiting prevents brute force on PIN validation
 
 ### API3: Broken Object Property Level Authorization
@@ -88,7 +88,7 @@
 - ✅ **IMPLEMENTED**: 6-hour request timeout
 
 ### API5: Broken Function Level Authorization
-- ✅ **IMPLEMENTED**: Admin endpoints require ADMIN_TOKEN
+- ✅ **IMPLEMENTED**: Admin endpoints require Entra ID SSO
 - ✅ **IMPLEMENTED**: Field worker endpoints require valid JWT
 
 ### API6: Unrestricted Access to Sensitive Business Flows
@@ -116,7 +116,6 @@
 
 ### Identity & Access Management
 - ✅ **IMPLEMENTED**: Entra ID authentication for database
-- ✅ **IMPLEMENTED**: Azure-managed secrets (ADMIN_TOKEN in Azure Key Vault recommended)
 - ✅ **IMPLEMENTED**: Role-based access control (RBAC) for App Service
 
 ### Network Security
@@ -135,7 +134,7 @@
 
 ### 1. Rate Limiting (lib/rateLimit.ts)
 - **PIN Validation**: 5 attempts per minute, 15-min lockout after exceeding
-- **Admin Token**: 3 failed attempts per minute, 30-min lockout
+- **Admin auth**: 3 failed attempts per minute, 30-min lockout
 - **PIN Creation**: 20 PINs per minute max (prevent token stuffing)
 - **Photo Upload**: 50 uploads per hour per IP
 - **IP Tracking**: All rate limits keyed by client IP
@@ -153,11 +152,6 @@
 - JWT tokens are short-lived (24 hours)
 - Session storage clears on tab close (browser security)
 - Tokens stored in sessionStorage, not localStorage
-
-### 5. Admin Token Protection
-- ADMIN_TOKEN stored in environment variables only
-- Failed auth attempts are rate limited and logged
-- Admin endpoint has stricter rate limits than user endpoints
 
 ## ⚠️ Recommended Enhancements
 
@@ -236,7 +230,6 @@
    - Certificate pinning for mobile apps
 
 4. **Secrets Management**
-   - Rotate ADMIN_TOKEN regularly
    - Use Azure Key Vault instead of env vars
    - Separate secrets per environment
 
@@ -245,7 +238,6 @@
 ```bash
 # .env.local - NEVER commit these
 JWT_SECRET=<random-32-char-string>  # Use openssl rand -hex 16
-ADMIN_TOKEN=<random-admin-secret>    # Use openssl rand -hex 16
 DATABASE_URL=<azure-sql-connection>
 AZURE_STORAGE_CONNECTION_STRING=<blob-key>
 ```
@@ -271,13 +263,7 @@ done
 
 # Should get 429 after 5 attempts
 
-# Test admin token
-curl -X POST http://localhost:3000/api/auth/create-session \
-  -H "x-admin-token: wrong-token" \
-  -H "Content-Type: application/json" \
-  -d '{"teamName":"Test"}'
-
-# Should get 401 and be rate limited after 3 attempts
+# Admin endpoints require Entra ID SSO — test via browser at /admin
 ```
 
 ## Deployment Checklist

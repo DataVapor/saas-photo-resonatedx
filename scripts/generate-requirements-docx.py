@@ -348,7 +348,7 @@ for req in [
 add_heading_styled(doc, "FR-2.1.2 Admin Authentication", level=3)
 for req in [
     "The system SHALL provide an admin dashboard at /admin.",
-    "The system SHALL require an admin token (matching the ADMIN_TOKEN environment variable) via the x-admin-token header for administrative API calls.",
+    "The system SHALL require Microsoft Entra ID SSO authentication for all administrative API calls.",
     "The system SHALL support admin login through the web dashboard UI.",
 ]:
     add_bullet(doc, req)
@@ -440,7 +440,7 @@ for req in [
 add_heading_styled(doc, "FR-2.3.3 Admin API", level=3)
 for req in [
     "POST /api/auth/create-session SHALL create a new PIN and return { id, pin, team_name }.",
-    "The endpoint SHALL require the x-admin-token header.",
+    "The endpoint SHALL require Entra ID session authentication.",
     "The endpoint SHALL validate team names (max 255 characters, alphanumeric with spaces/hyphens/underscores).",
 ]:
     add_bullet(doc, req)
@@ -524,7 +524,7 @@ add_para(doc, "The application SHALL address all OWASP Top 10 (2021) categories:
 styled_table(doc,
     ["#", "Category", "Implementation"],
     [
-        ["1", "Broken Access Control", "JWT verification, admin token validation"],
+        ["1", "Broken Access Control", "JWT verification, Entra ID session validation"],
         ["2", "Cryptographic Failures", "HTTPS enforcement, JWT HS256"],
         ["3", "Injection", "Parameterized SQL, input validation"],
         ["4", "Insecure Design", "Rate limiting, session expiry"],
@@ -592,7 +592,7 @@ styled_table(doc,
     ["Variable", "Description", "Required"],
     [
         ["JWT_SECRET", "Secret key for JWT signing", "Yes"],
-        ["ADMIN_TOKEN", "Admin authentication token", "Yes"],
+        ["AUTH_MICROSOFT_ENTRA_ID_ID", "Entra ID app client ID", "Yes"],
         ["SQL_SERVER", "Azure SQL Database server hostname", "Yes"],
         ["SQL_DATABASE", "Database name", "Yes"],
         ["SQL_USERNAME", "Database username (dev only)", "Dev"],
@@ -680,10 +680,10 @@ add_para(doc, "Create a new PIN (admin only).")
 styled_table(doc,
     ["Property", "Details"],
     [
-        ["Authentication", "x-admin-token header"],
+        ["Authentication", "Entra ID session (required)"],
         ["Request Body", '{ "teamName": "Team A" } (optional)'],
         ["Success Response (200)", '{ "id": "uuid", "pin": "654321", "team_name": "Team A" }'],
-        ["Error 401", "Invalid admin token"],
+        ["Error 401", "Unauthenticated"],
         ["Error 429", "Rate limited"],
     ],
     col_widths=[30, 70],
@@ -744,7 +744,7 @@ styled_table(doc,
     [
         ["/", "Login", "Public", "PIN entry form, redirects to /upload on success"],
         ["/upload", "Photo Upload", "Authenticated (JWT)", "Photo capture/upload with metadata fields"],
-        ["/admin", "Admin Dashboard", "Admin token", "PIN creation and management"],
+        ["/admin", "Admin Dashboard", "Entra ID SSO", "PIN creation and management"],
     ],
     col_widths=[15, 20, 25, 40],
 )
@@ -801,7 +801,7 @@ structure = [
     ("    security.ts", "Validation & audit logging"),
     ("    utils.ts", "Utility functions"),
     ("  docs/", "Documentation"),
-    ("  scripts/", "Admin CLI tools"),
+    ("  scripts/", "Build & generation scripts"),
     ("  .github/workflows/", "CI/CD pipeline"),
     ("  SECURITY.md", "Security documentation"),
     ("  DESIGN_SYSTEM.md", "UI component documentation"),

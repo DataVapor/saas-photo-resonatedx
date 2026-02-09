@@ -2,15 +2,11 @@
 
 ## Overview
 
-Administrators have **three ways** to create PINs for field teams:
-
-1. **Web Dashboard** (`/admin`) - Recommended for single PIN creation
-2. **CLI Tool** - Best for batch PIN generation and automation
-3. **Direct API** - For integration with other systems (curl/scripts)
+Administrators manage PINs for field teams exclusively through the **Web Admin Dashboard** (`/admin`), authenticated via **Microsoft Entra ID SSO**.
 
 ---
 
-## 🌐 Method 1: Web Admin Dashboard
+## Web Admin Dashboard
 
 ### Access the Dashboard
 
@@ -24,278 +20,148 @@ Administrators have **three ways** to create PINs for field teams:
    https://aspr-photos-lab.azurewebsites.net/admin
    ```
 
+### Sign In
+
+1. Navigate to the admin dashboard URL
+2. Click **"Sign in with HHS"**
+3. Authenticate with your **HHS Entra ID credentials** (you must be a member of the ASPR Photo Admins security group)
+4. After successful SSO login, you will see the admin dashboard with the **Sessions** and **Photos** tabs
+
 ### Create a PIN
 
-1. Go to the admin dashboard
-2. Enter your `ADMIN_TOKEN` from `.env.local` (or Key Vault)
-3. Click "Login as Admin"
-4. Enter a team name (optional - auto-generated if blank)
-5. Click "Create PIN"
-6. Copy the PIN and share securely with your team
+1. Go to the **Sessions** tab
+2. Optionally enter a **Team Name** (e.g., "Alpha Team", "FEMA Region 4")
+   - If left blank, the team name defaults to "Anonymous"
+3. Click **Generate New PIN**
+4. A new 6-digit PIN will be displayed
+5. **Copy the PIN immediately** -- it is shown only once and cannot be retrieved later
 
 ### Features
-- ✅ User-friendly web interface
-- ✅ View all active PINs
-- ✅ Copy PIN to clipboard
-- ✅ See PIN expiration date (7 days)
-- ✅ Team identification
+
+- User-friendly web interface
+- View all active sessions and PINs
+- Copy PIN to clipboard
+- See PIN expiration date (48 hours)
+- Team identification
+- Search sessions by team name
+- Revoke sessions immediately
 
 ---
 
-## 🖥️ Method 2: CLI Tool (Recommended for Batch Operations)
-
-### Setup
-
-Make the script executable:
-```bash
-chmod +x scripts/admin-cli.js
-```
-
-### Create a Single PIN
-
-```bash
-ADMIN_TOKEN=your-admin-token node scripts/admin-cli.js create-pin "Team A"
-```
-
-**Output:**
-```
-╔═══════════════════════════════════╗
-║ 📌 NEW PIN CREATED                ║
-╚═══════════════════════════════════╝
-PIN:       123456
-Team:      Team A
-ID:        a1b2c3d4-...
-Expires:   7 days
-
-👉 Share this PIN with your team via secure channel
-```
-
-### Create Multiple PINs
-
-```bash
-ADMIN_TOKEN=your-admin-token node scripts/admin-cli.js create-pins 5
-```
-
-**Output:**
-```
-📋 Creating 5 PINs...
-✅ PIN 1/5: 234567 (Team 1)
-✅ PIN 2/5: 345678 (Team 2)
-✅ PIN 3/5: 456789 (Team 3)
-✅ PIN 4/5: 567890 (Team 4)
-✅ PIN 5/5: 678901 (Team 5)
-
-✅ Successfully created 5 PINs
-
-📊 Summary:
-──────────────────────────────────────────────
-PIN      │ Team
-──────────────────────────────────────────────
-234567   │ Team 1
-345678   │ Team 2
-456789   │ Team 3
-567890   │ Team 4
-678901   │ Team 5
-──────────────────────────────────────────────
-```
-
-### Advanced: Production Deployment
-
-```bash
-API_URL=https://aspr-photos-lab.azurewebsites.net \
-ADMIN_TOKEN=<from-key-vault> \
-node scripts/admin-cli.js create-pins 10
-```
-
----
-
-## 📡 Method 3: Direct API (cURL/Postman)
-
-### Endpoint
-
-```
-POST /api/auth/create-session
-```
-
-### Request
-
-```bash
-curl -X POST http://localhost:3000/api/auth/create-session \
-  -H "Content-Type: application/json" \
-  -H "x-admin-token: your-admin-token" \
-  -d '{"teamName": "Team A"}'
-```
-
-### Response
-
-```json
-{
-  "id": "a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6",
-  "pin": "123456",
-  "team_name": "Team A"
-}
-```
-
-### Error Responses
-
-**Invalid Admin Token:**
-```json
-{
-  "error": "Unauthorized"
-}
-```
-Status: `401`
-
-**Too Many Failed Attempts:**
-```json
-{
-  "error": "Too many failed authentication attempts"
-}
-```
-Status: `429` (Rate limited for 30 minutes)
-
-**Rate Limited (Excessive PIN Generation):**
-```json
-{
-  "error": "Rate limit exceeded for PIN generation"
-}
-```
-Status: `429` (Max 20 PINs per minute)
-
----
-
-## 🔐 Getting Your Admin Token
-
-### Local Development
-
-Check your `.env.local` file:
-```bash
-cat .env.local | grep ADMIN_TOKEN
-# Output: ADMIN_TOKEN=my-secret-admin-token
-```
-
-### Production (Azure)
-
-Retrieve from Azure Key Vault:
-```bash
-az keyvault secret show --vault-name aspr-keyvault --name admin-token --query value -o tsv
-```
-
-Or from Azure Portal:
-1. Go to **Key Vault** → `aspr-keyvault`
-2. Select **Secrets**
-3. Click **admin-token**
-4. Copy the value
-
----
-
-## 📋 PIN Lifecycle
+## PIN Lifecycle
 
 | Status | Details |
 |--------|---------|
-| **Created** | PIN is issued to team |
-| **Active** | PIN can be used to authenticate (up to 7 days) |
-| **Expired** | PIN automatically expires after 7 days |
-| **Used** | Pins can be reused by multiple team members |
-
-### Expiration Check
-
-```bash
-# PINs expire 7 days after creation
-# No manual revocation - relies on time-based expiration
-# For emergency revocation, delete from database manually:
-
-DELETE FROM upload_sessions WHERE pin = '123456'
-```
+| **Created** | PIN is issued to team via the admin dashboard |
+| **Active** | PIN can be used to authenticate (up to 48 hours) |
+| **Expired** | PIN automatically expires after 48 hours |
+| **Revoked** | Admin manually deactivates the session via the dashboard |
+| **Shared** | PINs can be reused by multiple team members on the same team |
 
 ---
 
-## 📊 Monitoring & Logging
+## PIN Security
 
-### View PIN Creation Attempts
+### How PINs Are Stored
 
-Check application logs for audit trail:
+- PINs are **hashed with bcrypt** before being stored in the database
+- The plaintext PIN is displayed only once at creation time and is never recoverable
+- PIN validation compares a bcrypt hash, not plaintext
 
-**Local:**
-```
-✅ PIN_CREATED: Team A, PIN: ***56
-⚠️ AUTH_FAILURE: Invalid admin token from 192.168.1.1
-```
+### Rate Limiting
 
-**Production (Azure Application Insights):**
-1. Go to **App Service** → `aspr-photos-lab`
-2. Click **Application Insights** → `aspr-ai`
-3. Go to **Logs** → Run query:
+| Endpoint | Max Attempts | Window | Lockout |
+|----------|-------------|--------|---------|
+| PIN Validation (`/api/auth/validate-pin`) | 5 | 60 seconds | 15 minutes |
+| PIN Creation (`/api/auth/create-session`) | 20 | 60 seconds | None |
+
+- Rate limiting is enforced per IP address
+- Failed PIN validation attempts are logged with the client IP
+
+### PIN Properties
+
+| Property | Value |
+|----------|-------|
+| Length | 6 numeric digits |
+| Range | 100000 -- 999999 |
+| Expiration | 48 hours from creation |
+| Hashing | bcrypt |
+| Sharing | One PIN can be shared with multiple team members |
+
+---
+
+## Monitoring & Logging
+
+### Audit Trail
+
+All PIN creation and session management actions are recorded in the immutable audit log:
+
+| Event | Details Logged |
+|-------|---------------|
+| `PIN_CREATED` | Admin email (Entra ID), team name, last 2 digits of PIN, timestamp |
+| `SESSION_REVOKED` | Admin email, session ID, timestamp |
+| `AUTH_SUCCESS` | Successful PIN validation, IP address, timestamp |
+| `AUTH_FAILURE` | Failed PIN validation, IP address, timestamp |
+
+### Production Monitoring (Azure Application Insights)
+
+1. Go to **App Service** > `app-aspr-photos`
+2. Click **Application Insights**
+3. Go to **Logs** and run:
    ```kusto
    customEvents
-   | where name in ('PIN_CREATED', 'AUTH_FAILURE')
+   | where name in ('PIN_CREATED', 'AUTH_FAILURE', 'SESSION_REVOKED')
    | order by timestamp desc
    ```
 
 ---
 
-## 🚨 Security Best Practices
+## Security Best Practices
 
-### DO ✅
+### DO
 
-- ✅ Store ADMIN_TOKEN in Azure Key Vault (not in code)
-- ✅ Rotate ADMIN_TOKEN regularly (monthly)
-- ✅ Share PINs via secure channels (encrypted email, Signal, Teams)
-- ✅ Limit PIN creation to authorized admins only
-- ✅ Monitor PIN creation attempts for suspicious activity
-- ✅ Use HTTPS in production
+- Share PINs via secure channels (encrypted email, Signal, Microsoft Teams)
+- Limit PIN creation to authorized admins only (enforced by Entra ID security group membership)
+- Monitor PIN creation attempts for suspicious activity
+- Create a new PIN for each deployment or operation
+- Revoke sessions immediately if a PIN is compromised
+- Use HTTPS in production
 
-### DON'T ❌
+### DON'T
 
-- ❌ Never hardcode ADMIN_TOKEN in code
-- ❌ Never share ADMIN_TOKEN via unencrypted channels
-- ❌ Never log full PINs (last 2 digits only)
-- ❌ Never allow public PIN creation
-- ❌ Never increase PIN validity beyond 7 days without review
+- Never log full PINs (last 2 digits only)
+- Never share PINs via unencrypted channels (SMS, plain email)
+- Never allow public PIN creation (Entra ID SSO enforced)
+- Never increase PIN validity beyond 48 hours without review
 
 ---
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
-### "Unauthorized" Error
+### Cannot Access Admin Dashboard
 
-**Cause:** Invalid ADMIN_TOKEN
+**Cause:** You are not a member of the ASPR Photo Admins Entra ID security group.
 
-**Fix:**
-```bash
-# Verify your token is correct
-echo $ADMIN_TOKEN
+**Fix:** Contact your Azure AD administrator to be added to the security group.
 
-# Re-check .env.local
-cat .env.local | grep ADMIN_TOKEN
-```
-
-### "Rate limit exceeded" After 3 Failed Attempts
-
-**Cause:** Too many failed auth attempts (30-min lockout)
-
-**Fix:** Wait 30 minutes before trying again, or use a different IP
-
-### "Too many requests" After Creating 20+ PINs/Min
+### "Rate limit exceeded" After Creating 20+ PINs/Min
 
 **Cause:** PIN creation rate limit (20 per minute)
 
-**Fix:** Wait 60 seconds before creating more PINs
+**Fix:** Wait 60 seconds before creating more PINs.
 
-### CLI Script Not Running
+### PIN Not Working for Field Team
 
-**Fix:**
-```bash
-# Make script executable
-chmod +x scripts/admin-cli.js
+**Possible causes:**
+- PIN has expired (48-hour lifetime)
+- Session was revoked by an admin
+- Field team member exceeded 5 failed attempts (15-minute lockout)
 
-# Run with explicit Node path
-node scripts/admin-cli.js create-pin "Team A"
-```
+**Fix:** Create a new PIN from the admin dashboard and distribute it to the team.
 
 ---
 
-## 📞 Support
+## Support
 
 For issues or questions:
 1. Check this guide (PIN Management section)
@@ -307,10 +173,11 @@ For issues or questions:
 
 ## Quick Reference
 
-| Task | Command |
-|------|---------|
-| Create 1 PIN | `ADMIN_TOKEN=token node scripts/admin-cli.js create-pin "Team Name"` |
-| Create 10 PINs | `ADMIN_TOKEN=token node scripts/admin-cli.js create-pins 10` |
-| Access Dashboard | `http://localhost:3000/admin` |
-| Test API | `curl -H "x-admin-token: token" http://localhost:3000/api/auth/create-session` |
-| Get Production Token | `az keyvault secret show --vault-name aspr-keyvault --name admin-token` |
+| Task | How |
+|------|-----|
+| Create a PIN | Sign in at `/admin` with Entra ID, go to Sessions tab, click Generate New PIN |
+| View active sessions | Sign in at `/admin`, Sessions tab shows all sessions with status |
+| Revoke a session | Sign in at `/admin`, find the session, click Revoke |
+| Search sessions | Use the search bar in the Sessions tab to filter by team name |
+| Access dashboard (local) | `http://localhost:3000/admin` |
+| Access dashboard (prod) | `https://aspr-photos-lab.azurewebsites.net/admin` |

@@ -476,7 +476,7 @@ add_bullet_slide(slide, "CI/CD Pipeline \u2014 Automated Deployment", [
     "4.  Deploy: azure/webapps-deploy@v2 via publish profile "
     "(ZipDeploy to SCM endpoint)",
     "5.  Target: app-aspr-photos in rg-ocio-microsites-eus2-01",
-    "6.  Post-Deploy: POST /api/admin/migrate with x-admin-token "
+    "6.  Post-Deploy: POST /api/admin/migrate (Entra ID session) "
     "for database schema migrations",
     "7.  Health: /api/health endpoint polled every 30s by "
     "Front Door health probe",

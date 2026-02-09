@@ -35,7 +35,6 @@ https://app-aspr-photos.azurewebsites.net
 | Entra ID SSO | Auth.js OIDC session | Admin access (primary); HHS staff upload |
 | Login.gov | Auth.js OIDC session | External responder upload |
 | ID.me | Auth.js OIDC session | External responder upload |
-| Admin Token (fallback) | `x-admin-token: <token>` | Admin API when SSO unavailable |
 | Signed URL | Query params: `exp`, `sig` | Image proxy access |
 
 ### 1.3 Common Response Headers
@@ -46,11 +45,10 @@ All responses include security headers:
 
 ### 1.4 Admin Authentication
 
-All `/api/admin/*` endpoints require one of:
+All `/api/admin/*` endpoints require:
 1. **Entra ID SSO session** — Admin must be in the ASPR Photo Admins security group
-2. **`x-admin-token` header** — Must match the `ADMIN_TOKEN` environment variable (timing-safe comparison)
 
-The admin auth middleware (`lib/adminAuth.ts`) returns an `AdminContext` object containing the admin's identity (email or "token"), which is recorded in the audit log.
+The admin auth middleware (`lib/adminAuth.ts`) returns an `AdminContext` object containing the admin's identity (email), which is recorded in the audit log.
 
 ---
 
@@ -125,7 +123,7 @@ Create a new PIN and upload session (admin only).
 |---|---|
 | Method | POST |
 | Content-Type | application/json |
-| Authentication | Entra ID session or `x-admin-token` header (fallback) |
+| Authentication | Entra ID session (required) |
 | Rate Limit | 20 / 60s (creation); 3 / 60s + 30-min lockout (auth failures) |
 
 ```json
@@ -153,7 +151,7 @@ Create a new PIN and upload session (admin only).
 | Status | Body | Condition |
 |---|---|---|
 | 400 | `{ "error": "Team name contains invalid characters" }` | Invalid team name |
-| 401 | `{ "error": "Unauthorized" }` | Invalid admin token |
+| 401 | `{ "error": "Unauthorized" }` | Unauthenticated |
 | 429 | `{ "error": "Too many failed authentication attempts" }` | Admin auth rate limited |
 | 500 | `{ "error": "Failed to create PIN" }` | Server error |
 
@@ -334,7 +332,7 @@ Admin utility to fix content types on existing blobs.
 
 ## 4. Admin Endpoints
 
-All admin endpoints require admin authentication (Entra ID session or `x-admin-token` header). Every operation is recorded in the `admin_audit_log` table.
+All admin endpoints require admin authentication (Entra ID session). Every operation is recorded in the `admin_audit_log` table.
 
 ### 4.1 GET /api/admin/photos
 
@@ -611,7 +609,7 @@ Upload photos as an admin (creates an admin-sourced batch).
 |---|---|
 | Method | POST |
 | Content-Type | multipart/form-data |
-| Authentication | Admin auth (Entra ID or x-admin-token) |
+| Authentication | Admin auth (Entra ID session) |
 
 **Form Fields:** Same as field upload (§3.1), with automatic admin batch tracking.
 
@@ -635,7 +633,7 @@ Run pending database schema migrations.
 | Property | Value |
 |---|---|
 | Method | POST |
-| Authentication | `x-admin-token` header |
+| Authentication | Entra ID session (required) |
 
 **Success Response (200):**
 

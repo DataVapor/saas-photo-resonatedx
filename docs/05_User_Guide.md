@@ -206,7 +206,6 @@ Navigate to `/gallery` or tap **View Gallery** after uploading. The gallery show
 
 1. Navigate to `/admin`
 2. Sign in with your **HHS Entra ID credentials** (you must be a member of the ASPR Photo Admins security group)
-3. If Entra ID is not configured, enter the **admin authentication token** provided by system operations
 
 ### 6.2 Dashboard Overview
 
@@ -395,7 +394,7 @@ All administrative actions are logged in an immutable audit trail. The audit log
 |---|---|
 | **Action** | What was done (create, update, delete, bulk_delete, etc.) |
 | **Entity** | What was affected (photo, session, tag, migration) |
-| **Performed By** | Admin email (Entra ID) or "token" (fallback auth) |
+| **Performed By** | Admin email (Entra ID) |
 | **IP Address** | Client IP address |
 | **Timestamp** | When the action occurred |
 | **Details** | JSON details specific to the action |
@@ -417,7 +416,7 @@ The audit log cannot be modified or deleted. It provides a complete record of al
 | GPS not working | Allow location access in browser settings |
 | Page won't load | Check internet connection; try a different browser |
 | Session expired | Log in again with your PIN (if still valid) |
-| Admin login fails | Verify you are in the ASPR Photo Admins security group, or check admin token |
+| Admin login fails | Verify you are in the ASPR Photo Admins security group, or check Entra ID configuration |
 | Bulk download slow | Large selections may take time; try smaller batches |
 
 ### 10.2 Getting Help

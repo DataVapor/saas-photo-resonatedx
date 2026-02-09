@@ -1,8 +1,8 @@
 # Security Plan
 
 **System Name:** ASPR Photo Repository Application
-**Document Version:** 2.0
-**Last Updated:** 2026-02-07
+**Document Version:** 2.1
+**Last Updated:** 2026-02-09
 **Classification:** CUI // SP-SSP
 **Owner:** HHS ASPR / Leidos
 
@@ -97,7 +97,6 @@ Azure VNet ───────────────────────
 | Incident IDs | Low | Structured identifiers for incident tracking |
 | PIN credentials | High | 6-digit PINs stored as bcrypt hashes |
 | JWT tokens | Moderate | Session tokens with 24-hour expiration |
-| Admin tokens | High | Static fallback tokens for administrative access (deprecated by Entra ID SSO) |
 | Entra ID tokens | Moderate | OIDC tokens for HHS staff authentication |
 | Login.gov tokens | Moderate | OIDC tokens for federal/public user authentication |
 | ID.me tokens | Moderate | OIDC tokens for external responder authentication |
@@ -112,7 +111,7 @@ Azure VNet ───────────────────────
 |---|---|---|---|
 | Field Team Member (HHS) | Variable (per incident) | Upload photos, view own session gallery | Entra ID SSO or 6-digit PIN → JWT |
 | Field Team Member (External) | Variable (per incident) | Upload photos, view own session gallery | Login.gov, ID.me, or 6-digit PIN → JWT |
-| Administrator | Limited | Full photo management, tagging, bulk ops, editor, session/PIN management, audit log | Entra ID SSO (HHS tenant, admin group) or ADMIN_TOKEN (fallback) |
+| Administrator | Limited | Full photo management, tagging, bulk ops, editor, session/PIN management, audit log | Entra ID SSO (HHS tenant, admin group) |
 
 ---
 
@@ -123,10 +122,10 @@ Azure VNet ───────────────────────
 | Control | Implementation |
 |---|---|
 | **AC-2 Account Management** | Upload sessions created by admins with expiration (48 hours); SSO users identified by OIDC subject claims; no local persistent user accounts |
-| **AC-3 Access Enforcement** | JWT Bearer tokens required for all photo operations; admin access requires Entra ID SSO (HHS tenant) with security group membership or timing-safe ADMIN_TOKEN comparison via `crypto.timingSafeEqual()` |
+| **AC-3 Access Enforcement** | JWT Bearer tokens required for all photo operations; admin access requires Entra ID SSO (HHS tenant) with security group membership |
 | **AC-4 Information Flow Enforcement** | Azure Front Door WAF enforces OWASP CRS 3.2 managed rules in Prevention mode; Bot Manager 1.1 blocks malicious bot traffic; all traffic must transit Front Door (App Service IP-restricted to Front Door service tag `AzureFrontDoor.Backend` with Front Door ID header validation) |
-| **AC-6 Least Privilege** | Admin dual-auth: primary via Entra ID SSO (requires HHS tenant membership + admin security group), fallback via ADMIN_TOKEN with `crypto.timingSafeEqual()` comparison; field teams scoped to own session photos only; admin operations logged to immutable audit table |
-| **AC-7 Unsuccessful Login Attempts** | 5 PIN attempts per minute per IP, then 15-minute lockout; 3 admin token attempts then 30-minute lockout |
+| **AC-6 Least Privilege** | Admin access via Entra ID SSO (requires HHS tenant membership + admin security group); field teams scoped to own session photos only; admin operations logged to immutable audit table |
+| **AC-7 Unsuccessful Login Attempts** | 5 PIN attempts per minute per IP, then 15-minute lockout; 3 failed admin auth attempts then 30-minute lockout |
 | **AC-8 System Use Notification** | Government branding (ASPR/HHS) establishes federal system context |
 | **AC-11 Session Lock** | JWT tokens expire after 24 hours; session data stored in browser sessionStorage (cleared on tab close) |
 | **AC-17 Remote Access** | All backend resources (Blob Storage, SQL Database, Key Vault, App Service) accessed exclusively via Private Link — no public endpoints; Front Door terminates TLS and forwards via Private Link origins; HTTPS-only via HSTS with preload |
@@ -151,7 +150,7 @@ Azure VNet ───────────────────────
 | `UPLOAD_SUCCESS` | Photo uploaded | photoId, fileSize, sessionId |
 | `UPLOAD_FAILURE` | Upload validation failed | reason, sessionId, IP |
 | `RATE_LIMIT_EXCEEDED` | Rate limit triggered | endpoint type, IP |
-| `ADMIN_LOGIN` | Admin authenticated via Entra ID or token | principal, method, IP |
+| `ADMIN_LOGIN` | Admin authenticated via Entra ID SSO | principal, method, IP |
 | `PHOTO_UPDATED` | Photo metadata edited | photoId, changedFields, adminPrincipal |
 | `PHOTO_DELETED` | Photo deleted by admin | photoId, fileName, adminPrincipal |
 | `BULK_DELETE` | Bulk photo deletion | photoIds[], count, adminPrincipal |
@@ -168,7 +167,7 @@ CREATE TABLE admin_audit_log (
     entity_type NVARCHAR(50)   NOT NULL,   -- 'photo', 'session', 'tag', 'migration'
     entity_id   NVARCHAR(100)  NULL,        -- UUID of affected entity
     action      NVARCHAR(50)   NOT NULL,    -- 'create', 'update', 'delete', 'bulk_delete', etc.
-    performed_by NVARCHAR(255) NOT NULL,    -- Admin principal (email or 'token')
+    performed_by NVARCHAR(255) NOT NULL,    -- Admin principal (email from Entra ID)
     ip_address  NVARCHAR(45)   NULL,        -- Client IP
     details     NVARCHAR(MAX)  NULL,        -- JSON details of the operation
     created_at  DATETIME       NOT NULL DEFAULT GETDATE()
@@ -180,7 +179,7 @@ CREATE TABLE admin_audit_log (
 
 | Control | Implementation |
 |---|---|
-| **IA-2 User Identification** | Field teams identified by session ID (PIN) or OIDC subject claim (SSO); admins identified by Entra ID principal or ADMIN_TOKEN (logged as "token") |
+| **IA-2 User Identification** | Field teams identified by session ID (PIN) or OIDC subject claim (SSO); admins identified by Entra ID principal |
 | **IA-2(1) Multi-Factor Auth (Privileged)** | Entra ID enforces MFA per HHS tenant policy for admin users |
 | **IA-2(2) Multi-Factor Auth (Non-Privileged)** | Login.gov requires phishing-resistant MFA; ID.me requires MFA; PIN auth is single-factor (mitigated by rate limiting, expiration, and WAF) |
 | **IA-5 Authenticator Management** | PINs generated via CSPRNG, bcrypt-hashed, 48h expiry; OIDC tokens managed by identity providers per their policies |
@@ -194,7 +193,6 @@ CREATE TABLE admin_audit_log (
 - **Comparison:** `bcrypt.compare()` — constant-time comparison inherent to bcrypt
 - **Expiration:** 48 hours from creation
 - **Distribution:** Plaintext PIN returned once at creation, communicated verbally to field team
-- **Admin Token Comparison:** `crypto.timingSafeEqual()` — prevents timing attacks (fallback mode only)
 
 #### OIDC Identity Provider Security
 
@@ -215,7 +213,7 @@ CREATE TABLE admin_audit_log (
 |---|---|
 | **SC-7 Boundary Protection** | Azure VNet isolates all backend resources; App Service access restricted to Azure Front Door service tag (`AzureFrontDoor.Backend`) with Front Door ID header (`X-Azure-FDID: 91523752-5871-42ed-9e27-031fc6f5eb86`) validation; no direct public access to App Service, SQL, Blob, or Key Vault |
 | **SC-8 Transmission Confidentiality** | Front Door terminates TLS 1.2+ at the edge; HTTPS enforced via HSTS (`max-age=31536000; includeSubDomains; preload`); HTTP requests redirected to HTTPS by Front Door; backend Private Link traffic encrypted within Azure backbone |
-| **SC-12 Cryptographic Key Management** | JWT_SECRET, ADMIN_TOKEN, and OIDC client secrets stored in Azure Key Vault (`kv-ociomicro-eus2-01`) with `ASPRPHOTOS--` prefix; Key Vault accessed via Private Endpoint; Login.gov uses `private_key_jwt` with asymmetric keys |
+| **SC-12 Cryptographic Key Management** | JWT_SECRET and OIDC client secrets stored in Azure Key Vault (`kv-ociomicro-eus2-01`) with `ASPRPHOTOS--` prefix; Key Vault accessed via Private Endpoint; Login.gov uses `private_key_jwt` with asymmetric keys |
 | **SC-13 Cryptographic Protection** | Front Door TLS 1.2+ termination (minimum TLS version enforced); JWT HS256 for session tokens; bcrypt for PINs; HMAC-SHA256 for signed image URLs; OIDC providers enforce TLS and token signing |
 | **SC-28 Protection of Information at Rest** | Azure SQL TDE (transparent data encryption); Azure Blob Storage encryption at rest (AES-256); Key Vault HSM-backed keys |
 
@@ -304,7 +302,7 @@ The health endpoint verifies database connectivity and returns the application v
 
 | # | Vulnerability | Mitigation |
 |---|---|---|
-| A01 | Broken Access Control | JWT verification on every API call; session-scoped photo access; Entra ID SSO with group-based RBAC for admin; timing-safe fallback token; **Azure Front Door WAF (OWASP CRS 3.2, Prevention mode)** blocks malicious access patterns; VNet isolation prevents direct backend access |
+| A01 | Broken Access Control | JWT verification on every API call; session-scoped photo access; Entra ID SSO with group-based RBAC for admin; **Azure Front Door WAF (OWASP CRS 3.2, Prevention mode)** blocks malicious access patterns; VNet isolation prevents direct backend access |
 | A02 | Cryptographic Failures | HTTPS enforced via Front Door TLS 1.2+ termination + HSTS; bcrypt for PINs; JWT HS256; HMAC-SHA256 signed URLs; OIDC tokens validated server-side; secrets in Key Vault |
 | A03 | Injection | Parameterized SQL queries (mssql `request.input()`); no string concatenation in queries; WAF SQL injection rules (CRS 3.2 SQLI group) |
 | A04 | Insecure Design | Rate limiting on all auth endpoints; session expiration; input validation; admin audit logging for accountability; immutable audit trail |
@@ -324,7 +322,6 @@ The health endpoint verifies database connectivity and returns the application v
 | Endpoint | Max Attempts | Window | Lockout Duration |
 |---|---|---|---|
 | `POST /api/auth/validate-pin` | 5 | 60 seconds | 15 minutes |
-| Admin token failures | 3 | 60 seconds | 30 minutes |
 | `POST /api/auth/create-session` | 20 | 60 seconds | None |
 | `POST /api/photos/upload` | 50 | 1 hour | None |
 | `POST /api/admin/photos/bulk` | 10 | 60 seconds | None |
@@ -404,7 +401,7 @@ The health endpoint verifies database connectivity and returns the application v
 1. **Automated Response:** Front Door WAF blocks in Prevention mode; application rate limiting and lockout mechanisms
 2. **WAF Log Review:** Azure Monitor / Log Analytics for WAF rule triggers, blocked requests, bot detection events
 3. **Audit Log Review:** Query `admin_audit_log` table for suspicious admin activity patterns
-4. **Manual Response:** Rotate ADMIN_TOKEN, JWT_SECRET, and OIDC client secrets if compromise suspected; revoke Entra ID app registration if needed; update WAF custom rules to block specific IPs/patterns
+4. **Manual Response:** Rotate JWT_SECRET and OIDC client secrets if compromise suspected; revoke Entra ID app registration if needed; update WAF custom rules to block specific IPs/patterns
 5. **Notification:** Alert ISSO and system owner per HHS incident response procedures
 
 ---
@@ -431,7 +428,7 @@ All backend-to-backend communication traverses the Azure backbone network via Pr
 | **Build** | GitHub Actions runner (GitHub-hosted, ephemeral) |
 | **Deploy Auth** | Azure App Service publish profile (basic auth to SCM endpoint) stored as GitHub encrypted secret (`AZURE_WEBAPP_PUBLISH_PROFILE`) |
 | **Deploy Method** | `azure/webapps-deploy@v2` (ZipDeploy via SCM) |
-| **Post-Deploy** | `POST /api/admin/migrate` with `x-admin-token` header triggers schema migrations |
+| **Post-Deploy** | `POST /api/admin/migrate` (requires Entra ID session) triggers schema migrations |
 | **Secret Management** | GitHub encrypted secrets for publish profile; Azure Key Vault for runtime secrets |
 | **No Force Push** | `main` branch protection prevents force pushes |
 
@@ -468,3 +465,4 @@ All backend-to-backend communication traverses the Azure backbone network via Pr
 | 1.0 | 2026-02-07 | HHS ASPR / Leidos | Initial security plan |
 | 1.1 | 2026-02-07 | HHS ASPR / Leidos | Multi-tier authentication: Entra ID SSO, Login.gov, ID.me OIDC; updated IA controls |
 | 2.0 | 2026-02-07 | HHS ASPR / Leidos | Post Phase 6 deployment: Azure Front Door WAF (OWASP 3.2 + Bot Manager, Prevention mode); VNet + Private Link network isolation; admin audit log (immutable admin_audit_log table); admin dual-auth (AC-6); health probe monitoring; CDN rendition security; CI/CD security controls; expanded OWASP compliance with WAF defense-in-depth |
+| 2.1 | 2026-02-09 | HHS ASPR / Leidos | Remove admin token (ADMIN_TOKEN) fallback authentication; admin access now exclusively via Microsoft Entra ID SSO (HHS tenant, admin group) |

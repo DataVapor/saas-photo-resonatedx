@@ -56,7 +56,7 @@ The application provides:
 
 #### FR-2.1.2 Admin Authentication
 - The system SHALL provide an admin dashboard at `/admin`.
-- The system SHALL require an admin token (matching the `ADMIN_TOKEN` environment variable) via the `x-admin-token` header for administrative API calls.
+- The system SHALL require Microsoft Entra ID SSO authentication for administrative API calls.
 - The system SHALL support admin login through the web dashboard UI.
 
 #### FR-2.1.3 Session Management
@@ -107,7 +107,7 @@ The application provides:
 ### 2.3 Admin Dashboard
 
 #### FR-2.3.1 PIN Creation
-- Admins SHALL be able to create new 6-digit PINs via the web dashboard, CLI tool, or direct API call.
+- Admins SHALL be able to create new 6-digit PINs via the web dashboard.
 - The system SHALL generate random 6-digit PINs (range: 100000–999999).
 - Admins SHALL be able to assign a team name to each PIN (auto-generated as "Team {timestamp}" if left blank).
 - Created PINs SHALL have a 7-day expiration.
@@ -118,7 +118,7 @@ The application provides:
 
 #### FR-2.3.3 Admin API
 - `POST /api/auth/create-session` SHALL create a new PIN and return `{ id, pin, team_name }`.
-- The endpoint SHALL require the `x-admin-token` header.
+- The endpoint SHALL require Entra ID session authentication.
 - The endpoint SHALL validate team names (max 255 characters, alphanumeric with spaces/hyphens/underscores).
 
 ---
@@ -171,7 +171,7 @@ The system SHALL log the following security events with timestamp, IP address, a
 
 #### NFR-3.1.6 OWASP Compliance
 The application SHALL address all OWASP Top 10 (2021) categories:
-1. Broken Access Control — JWT verification, admin token validation
+1. Broken Access Control — JWT verification, Entra ID session validation
 2. Cryptographic Failures — HTTPS enforcement, JWT HS256
 3. Injection — parameterized SQL, input validation
 4. Insecure Design — rate limiting, session expiry
@@ -242,7 +242,6 @@ The following environment variables are required:
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `JWT_SECRET` | Secret key for JWT signing | Yes |
-| `ADMIN_TOKEN` | Admin authentication token | Yes |
 | `SQL_SERVER` | Azure SQL Database server hostname | Yes |
 | `SQL_DATABASE` | Database name | Yes |
 | `SQL_USERNAME` | Database username (dev only) | Dev |
@@ -306,10 +305,10 @@ The following environment variables are required:
 
 | | Details |
 |---|---|
-| **Auth** | `x-admin-token` header |
+| **Auth** | Entra ID session |
 | **Request Body** | `{ "teamName": "Team A" }` (optional) |
 | **Success (200)** | `{ "id": "uuid", "pin": "654321", "team_name": "Team A" }` |
-| **Errors** | 401 (invalid admin token), 429 (rate limited) |
+| **Errors** | 401 (unauthenticated), 429 (rate limited) |
 
 ### 5.3 POST /api/photos/upload
 **Purpose:** Upload a photo with metadata.
@@ -348,7 +347,7 @@ The following environment variables are required:
 |-------|------|--------|-------------|
 | `/` | Login | Public | PIN entry form, redirects to `/upload` on success |
 | `/upload` | Photo Upload | Authenticated (JWT) | Photo capture/upload with metadata fields |
-| `/admin` | Admin Dashboard | Admin token | PIN creation and management |
+| `/admin` | Admin Dashboard | Entra ID SSO | PIN creation and management |
 
 ---
 
@@ -401,7 +400,6 @@ app-aspr-photos-lab/
 │   ├── REQUIREMENTS.md               # This document
 │   └── PIN_MANAGEMENT.md             # PIN admin guide
 ├── scripts/
-│   └── admin-cli.js                  # CLI tool for PIN management
 ├── .github/workflows/
 │   └── main_app-aspr-photos-lab.yml  # CI/CD pipeline
 ├── SECURITY.md                       # Security implementation docs

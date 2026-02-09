@@ -119,8 +119,7 @@ Field Team (SSO):
 
 Admin:
   Entra ID SSO → OIDC → Auth.js session → requireAdmin() checks session
-  Fallback: Admin Token → timing-safe comparison → x-admin-token header
-  Both methods → AdminContext { isAuthorized, adminEmail, authMethod }
+  All admin access requires Entra ID SSO → AdminContext { isAuthorized, adminEmail, authMethod }
 
 Image Access:
   HMAC-SHA256 signed URL → /api/photos/[id]/image?type=...&exp=...&sig=...
@@ -216,7 +215,7 @@ app-ndms-photos-lab/
 │   └── ui/                              # shadcn/ui components (Button, Input, Card, etc.)
 ├── lib/
 │   ├── auth.ts                          # JWT sign/verify + HMAC signed image URLs
-│   ├── adminAuth.ts                     # Admin auth context (Entra ID + token fallback)
+│   ├── adminAuth.ts                     # Admin auth context (Entra ID SSO)
 │   ├── db.ts                            # Azure SQL connection pool + mock DB fallback
 │   ├── blobHelpers.ts                   # Azure Blob CRUD, rendition paths, CDN URL generation
 │   ├── rateLimit.ts                     # In-memory rate limiter with lockout
@@ -291,9 +290,8 @@ The main page implements a wizard-style interface with animated page transitions
 The admin dashboard provides a comprehensive interface for photo management:
 
 **Authentication:**
-- Entra ID SSO (primary) — auto-advances to dashboard when authenticated
-- Static token fallback (when Entra ID not configured)
-- Dual-auth via `lib/adminAuth.ts` returning `AdminContext`
+- Entra ID SSO — auto-advances to dashboard when authenticated
+- Auth via `lib/adminAuth.ts` returning `AdminContext`
 
 **Tab Interface:**
 - **PINs Tab:** PIN generation with team name, session list with status/photo counts, revoke/reactivate
@@ -373,7 +371,7 @@ ASPR brand colors defined as CSS custom properties:
 All API routes follow a consistent pattern:
 
 1. **Rate limiting check** (per-IP, in-memory store)
-2. **Authentication verification** (JWT, Entra ID session, or admin token)
+2. **Authentication verification** (JWT or Entra ID session)
 3. **Input validation** (OWASP security module)
 4. **Business logic** (database operations, blob storage)
 5. **Audit logging** (security event + admin audit log table)
@@ -385,7 +383,7 @@ All API routes follow a consistent pattern:
 |---|---|---|---|
 | POST | `/api/auth/validate-pin` | None | Field team PIN login |
 | GET/POST | `/api/auth/[...nextauth]` | OIDC | Auth.js callback handlers (Entra ID) |
-| POST | `/api/auth/create-session` | Entra ID or admin token | Create new PIN |
+| POST | `/api/auth/create-session` | Entra ID session | Create new PIN |
 | POST | `/api/photos/upload` | JWT Bearer | Upload photo with metadata |
 | GET | `/api/photos` | JWT Bearer | List session photos (signed URLs) |
 | DELETE | `/api/photos/[id]` | JWT Bearer | Delete photo (ownership verified) |
@@ -556,7 +554,7 @@ The `lib/blobHelpers.ts` module handles URL generation:
 | entity_type | VARCHAR(50) | NOT NULL | photo, session, tag |
 | entity_id | NVARCHAR(36) | NOT NULL | Target entity ID |
 | action | VARCHAR(50) | NOT NULL | Action performed |
-| performed_by | NVARCHAR(255) | NOT NULL | Admin email or 'admin-token' |
+| performed_by | NVARCHAR(255) | NOT NULL | Admin email from Entra ID session |
 | ip_address | VARCHAR(45) | NULL | Client IP |
 | details | NVARCHAR(MAX) | NULL | Context JSON |
 | created_at | DATETIME | DEFAULT GETDATE() | Event timestamp |
@@ -637,8 +635,7 @@ Azure Blob Storage (stociomicroeus201)
 | Field Team Auth (PIN) | PIN + bcrypt | 6-digit PIN, 10 salt rounds, timing-safe |
 | Field Team Auth (SSO) | OIDC via Auth.js | Entra ID (HHS staff) |
 | Token Issuance | JWT HS256 | 24-hour expiration, sessionId payload |
-| Admin Auth (Primary) | Entra ID SSO | OIDC + `auth()` session check via `requireAdmin()` |
-| Admin Auth (Fallback) | Static token | `x-admin-token` header, `crypto.timingSafeEqual` |
+| Admin Auth | Entra ID SSO | OIDC + `auth()` session check via `requireAdmin()` |
 | Image Access | HMAC-SHA256 | Signed URLs with expiry |
 | PIN Generation | CSPRNG | `crypto.randomInt(100000, 999999)` |
 | Network | Front Door WAF | OWASP 3.2 + Bot Manager, Prevention mode |
@@ -689,7 +686,7 @@ All admin operations are logged to the `admin_audit_log` table:
 | entity_type | photo, session, tag |
 | entity_id | UUID of affected entity |
 | action | create, update, delete, bulk_delete, bulk_tag, revoke, reactivate |
-| performed_by | Admin email (from Entra ID session) or 'admin-token' |
+| performed_by | Admin email from Entra ID session |
 | ip_address | Client IP from `x-forwarded-for` |
 | details | JSON with operation-specific context |
 
@@ -752,7 +749,7 @@ Push to main → Build (standalone) → Upload artifact → Deploy via ZipDeploy
    - Authentication: Publish profile (`AZURE_WEBAPP_PUBLISH_PROFILE` secret)
 
 3. **Post-Deploy:**
-   - Hit `POST /api/admin/migrate` with `x-admin-token` header for schema updates
+   - Hit `POST /api/admin/migrate` (requires Entra ID session) for schema updates
    - App Service startup command: `node server.js`
 
 ---
