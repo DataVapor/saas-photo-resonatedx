@@ -213,7 +213,7 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
                   key={key}
                   onClick={() => setActiveTab(key)}
                   className={`relative flex items-center gap-2 px-5 py-2.5 text-sm font-medium
-                    rounded-t-xl transition-all
+                    rounded-t transition-all
                     ${activeTab === key
                       ? 'text-white bg-white/[0.07]'
                       : 'text-white/40 hover:text-white/70 hover:bg-white/[0.03]'
@@ -267,13 +267,6 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
                 />
               </motion.div>
 
-              {/* Icon */}
-              <motion.div variants={popIn}>
-                <div className="w-16 h-16 rounded-2xl bg-white/[0.07] backdrop-blur-sm border border-white/10 flex items-center justify-center mx-auto">
-                  <Key className="w-7 h-7 text-blue-300/80" />
-                </div>
-              </motion.div>
-
               {/* Title */}
               <motion.div variants={slideUp} className="space-y-2">
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-display text-white tracking-wide uppercase">
@@ -293,7 +286,7 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
                     whileHover={{ y: -1, boxShadow: '0 0 25px rgba(255,255,255,0.12)' }}
                     whileTap={{ y: 0 }}
                     className="w-full inline-flex items-center justify-center gap-2
-                      bg-white/90 backdrop-blur-sm text-[#062e61] py-3.5 rounded-lg
+                      bg-white/90 backdrop-blur-sm text-[#062e61] py-3.5 rounded
                       font-semibold text-base border border-white/30
                       shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all"
                   >
@@ -342,7 +335,7 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
                   whileHover={{ y: -1, boxShadow: '0 0 25px rgba(255,255,255,0.12)' }}
                   whileTap={{ y: 0 }}
                   className="w-full inline-flex items-center justify-center gap-2
-                    bg-white/[0.07] backdrop-blur-sm text-white/80 py-3.5 rounded-lg
+                    bg-white/[0.07] backdrop-blur-sm text-white/80 py-3.5 rounded
                     font-semibold text-base border border-white/10
                     shadow-[0_0_15px_rgba(255,255,255,0.03)] transition-all
                     hover:bg-white/[0.12] hover:text-white"

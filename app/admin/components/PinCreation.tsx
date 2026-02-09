@@ -105,7 +105,7 @@ export default function PinCreation({ isEntraAuth, storedToken, onPinCreated }: 
           disabled={loading}
           whileHover={{ y: -1 }}
           whileTap={{ y: 0 }}
-          className="w-full py-3 rounded-lg bg-white/90 backdrop-blur-sm text-[#062e61]
+          className="w-full py-3 rounded bg-white/90 backdrop-blur-sm text-[#062e61]
             font-semibold text-sm border border-white/30
             shadow-[0_0_15px_rgba(255,255,255,0.06)]
             flex items-center justify-center gap-2

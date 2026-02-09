@@ -527,7 +527,7 @@ export default function PhotoUploadWizard() {
                   onClick={() => goTo('pin')}
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="group inline-flex items-center gap-3 px-8 py-3.5 rounded-full
+                  className="group inline-flex items-center gap-3 px-8 py-3.5 rounded
                     bg-white/[0.1] backdrop-blur-md text-white font-medium text-base
                     border border-white/20 shadow-[0_0_40px_rgba(255,255,255,0.04)]
                     hover:bg-white/[0.16] hover:border-white/30
@@ -661,6 +661,36 @@ export default function PhotoUploadWizard() {
                 </motion.p>
               )}
 
+              {/* ID.me — Coming Soon */}
+              {!pinValid && (
+                <motion.div variants={slideUp} className="space-y-2 w-full">
+                  <div className="flex items-center gap-3 text-blue-200/30 text-xs">
+                    <div className="flex-1 h-px bg-blue-200/10" />
+                    <span>or</span>
+                    <div className="flex-1 h-px bg-blue-200/10" />
+                  </div>
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full inline-flex items-center justify-center gap-2.5
+                      bg-[#08833D]/20 backdrop-blur-sm text-white/40 py-3 rounded
+                      font-semibold text-sm border border-[#08833D]/30
+                      cursor-not-allowed transition-all relative"
+                  >
+                    <svg className="h-4 w-auto" viewBox="0 0 93 34" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4.99 0.249H3.386C1.384 0.249 0.369 0.843 0.369 2.014V30.98C0.369 32.152 1.384 32.745 3.386 32.745H4.99C6.993 32.745 8.008 32.151 8.008 30.98V2.014C8.009 0.843 6.993 0.249 4.99 0.249Z" />
+                      <path d="M33.278 29.197C33.278 25.741 35.556 22.817 38.703 21.81C39.063 20.199 39.244 18.423 39.247 16.48C39.247 6.01 33.922 0.243 24.25 0.243H13.94C12.5 0.243 11.829 0.908 11.829 2.336V30.625C11.829 32.053 12.5 32.718 13.939 32.718H24.249C27.936 32.718 30.99 31.877 33.359 30.26C33.307 29.908 33.28 29.553 33.277 29.197M24.248 26.206H19.501V6.755H24.248C30.188 6.755 31.435 12.044 31.435 16.48C31.435 20.917 30.188 26.206 24.248 26.206Z" />
+                      <path d="M41.11 25.65C43.086 25.65 44.688 27.238 44.688 29.198C44.688 31.157 43.086 32.745 41.11 32.745C39.133 32.745 37.531 31.157 37.531 29.198C37.531 27.238 39.133 25.65 41.11 25.65Z" />
+                      <path d="M92 24.219C91.896 24.174 91.784 24.149 91.669 24.145C91.18 24.129 90.847 24.32 90.552 24.792C90.378 25.074 90.207 25.362 90.036 25.649C89.387 26.746 88.717 27.877 87.742 28.689C86.419 29.791 84.503 30.306 82.86 30.007C81.883 29.83 81.185 29.129 80.771 28.572C80.012 27.55 79.643 26.173 79.702 24.586C82.121 24.384 89.41 23.316 89.991 17.838C90.103 16.776 89.798 15.813 89.108 15.054C88.234 14.092 86.838 13.561 85.179 13.561C80.318 13.561 75.519 18.603 74.91 24.35C74.744 25.927 74.942 27.382 75.5 28.68C75.146 29.019 74.741 29.302 74.302 29.519C73.895 29.711 73.542 29.751 73.283 29.633C72.963 29.486 72.833 29.115 72.782 28.83C72.591 27.778 72.838 26.569 73.131 25.319C73.303 24.586 73.519 23.823 73.709 23.149C74.297 21.07 74.905 18.921 74.702 16.749C74.518 14.761 73.11 13.526 71.029 13.526C68.111 13.526 66.189 15.59 64.946 17.36C64.92 16.041 64.603 15.084 63.981 14.444C63.39 13.835 62.522 13.525 61.401 13.525C58.539 13.525 56.642 15.508 55.401 17.244C55.418 17.084 55.435 16.921 55.453 16.759C55.531 16.015 55.566 14.949 54.967 14.29C54.61 13.898 54.074 13.699 53.373 13.699C52.891 13.684 52.409 13.721 51.936 13.811C51.929 13.812 51.286 13.937 51.041 14.16C50.612 14.55 50.749 15.087 50.827 15.394C50.837 15.433 50.846 15.469 50.851 15.499C50.9 15.839 50.915 16.183 50.896 16.526C50.806 18.613 50.416 20.7 50.045 22.466C49.844 23.417 49.618 24.385 49.395 25.34C48.899 27.46 48.388 29.65 48.125 31.854C48.067 32.282 48.366 32.676 48.795 32.735C48.834 32.74 48.873 32.742 48.913 32.742L49.067 32.743C50.64 32.764 52.185 32.7 52.549 31.81C52.951 30.829 53.173 29.636 53.37 28.581L53.457 28.113C53.923 25.686 54.331 23.948 55.152 21.713C55.575 20.56 56.348 19.523 56.973 18.747C57.73 17.807 58.547 16.887 59.468 16.864C59.849 16.845 60.098 16.957 60.286 17.204C61.18 18.388 60.066 22.208 59.591 23.84C59.488 24.193 59.401 24.491 59.346 24.709L59.018 25.97C58.535 27.808 58.036 29.708 57.781 31.63C57.755 31.827 57.731 32.024 57.711 32.224L57.689 32.492L57.891 32.645C58.297 32.958 61.196 32.521 61.219 32.514C62.288 32.156 62.521 31.159 62.598 30.831C62.797 29.983 62.973 29.117 63.142 28.28L63.155 28.218C63.474 26.642 63.804 25.011 64.297 23.437C65.261 20.375 66.546 18.286 68.117 17.228C68.789 16.774 69.479 16.724 69.791 17.107C70.335 17.769 69.991 19.56 69.843 20.325C69.64 21.386 69.38 22.466 69.129 23.51L69.116 23.563C68.955 24.229 68.795 24.894 68.646 25.561C68.187 27.628 67.809 30.191 68.983 31.67C69.581 32.424 70.505 32.806 71.731 32.806C73.031 32.806 74.253 32.376 75.579 31.453C75.944 31.197 76.313 30.898 76.743 30.543C78.236 32.225 79.93 32.945 82.376 32.945C87.907 32.945 90.507 29.302 91.982 26.562C92.178 26.211 92.351 25.848 92.499 25.474C92.682 24.97 92.463 24.418 92 24.22M84.963 19.2C84.174 21.737 81.952 22.187 80.03 22.251C80.283 21.168 80.658 20.116 81.147 19.117C82.083 17.228 83.257 16.055 84.212 16.054C85.669 16.054 85.211 18.384 84.963 19.2Z" />
+                    </svg>
+                    <span className="absolute -top-2 right-3 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider
+                      bg-[#08833D]/30 text-emerald-300/80 border border-[#08833D]/40 rounded">
+                      Coming Soon
+                    </span>
+                  </button>
+                </motion.div>
+              )}
+
               {/* Back */}
               {!pinValid && (
                 <motion.button
@@ -756,7 +786,7 @@ export default function PhotoUploadWizard() {
                     }
                     input.click()
                   }}
-                  className="w-[68px] rounded-2xl bg-white/[0.07] border border-white/10
+                  className="w-[68px] rounded bg-white/[0.07] border border-white/10
                     flex flex-col items-center justify-center gap-1
                     hover:bg-white/[0.12] transition flex-shrink-0"
                 >
@@ -871,7 +901,7 @@ export default function PhotoUploadWizard() {
                       whileHover={{ y: -1 }}
                       whileTap={{ y: 0 }}
                       onClick={() => goTo('metadata')}
-                      className="w-full py-3 rounded-lg bg-white/90 backdrop-blur-sm text-[#062e61]
+                      className="w-full py-3 rounded bg-white/90 backdrop-blur-sm text-[#062e61]
                         font-semibold text-sm border border-white/30
                         shadow-[0_0_15px_rgba(255,255,255,0.06)]
                         flex items-center justify-center gap-2 transition-all"
@@ -940,7 +970,7 @@ export default function PhotoUploadWizard() {
                         type="button"
                         onClick={getLocation}
                         disabled={locating}
-                        className="flex items-center gap-1 px-2.5 py-2.5 rounded-lg border border-white/10
+                        className="flex items-center gap-1 px-2.5 py-2.5 rounded border border-white/10
                           bg-white/[0.08] hover:bg-white/[0.14] hover:border-white/20 transition-all text-xs font-medium text-white/70"
                       >
                         {locating ? (
@@ -968,7 +998,7 @@ export default function PhotoUploadWizard() {
                             type="button"
                             onClick={lookupZip}
                             disabled={zipLooking}
-                            className="px-2 py-2.5 rounded-lg bg-white/[0.12] border border-white/15 text-white text-xs font-medium hover:bg-white/[0.18] transition-all"
+                            className="px-2 py-2.5 rounded bg-white/[0.12] border border-white/15 text-white text-xs font-medium hover:bg-white/[0.18] transition-all"
                           >
                             {zipLooking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Go'}
                           </button>
@@ -1034,7 +1064,7 @@ export default function PhotoUploadWizard() {
                 <button
                   type="button"
                   onClick={() => goTo('photos')}
-                  className="flex-1 py-3 rounded-lg border border-white/15 text-white/60
+                  className="flex-1 py-3 rounded border border-white/15 text-white/60
                     font-medium hover:bg-white/[0.08] hover:border-white/25 transition-all text-sm"
                 >
                   &larr; Back
@@ -1042,7 +1072,7 @@ export default function PhotoUploadWizard() {
                 <button
                   type="button"
                   onClick={handleUpload}
-                  className="flex-[2] py-3 rounded-lg bg-white/90 backdrop-blur-sm
+                  className="flex-[2] py-3 rounded bg-white/90 backdrop-blur-sm
                     text-[#062e61] font-semibold border border-white/30
                     shadow-[0_0_15px_rgba(255,255,255,0.06)]
                     flex items-center justify-center gap-2 transition-all
@@ -1157,7 +1187,7 @@ export default function PhotoUploadWizard() {
                         whileTap={{ y: 0 }}
                         onClick={handleUpload}
                         className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm text-[#062e61]
-                          px-6 py-3 rounded-lg font-semibold border border-white/30
+                          px-6 py-3 rounded font-semibold border border-white/30
                           shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all"
                       >
                         <RotateCcw className="w-4 h-4" /> Retry
@@ -1220,7 +1250,7 @@ export default function PhotoUploadWizard() {
                   whileTap={{ y: 0 }}
                   onClick={resetForMore}
                   className="inline-flex items-center justify-center gap-2
-                    bg-white/90 backdrop-blur-sm text-[#062e61] py-3 rounded-lg
+                    bg-white/90 backdrop-blur-sm text-[#062e61] py-3 rounded
                     font-semibold text-sm border border-white/30
                     shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all"
                 >
@@ -1232,7 +1262,7 @@ export default function PhotoUploadWizard() {
                   whileTap={{ y: 0 }}
                   onClick={() => router.push('/gallery')}
                   className="inline-flex items-center justify-center gap-2
-                    bg-white/[0.08] border border-white/15 text-white/80 py-3 rounded-lg
+                    bg-white/[0.08] border border-white/15 text-white/80 py-3 rounded
                     font-medium text-sm backdrop-blur-sm hover:bg-white/[0.14] hover:border-white/25 transition-all"
                 >
                   <ImageIcon className="w-4 h-4" />

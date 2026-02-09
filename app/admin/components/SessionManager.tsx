@@ -333,7 +333,7 @@ export default function SessionManager({ isEntraAuth, storedToken }: SessionMana
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleAction(session.id, 'revoke')}
                       disabled={actionLoading === session.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium
                         bg-red-500/10 text-red-300 border border-red-500/20
                         hover:bg-red-500/20 transition disabled:opacity-50 shrink-0"
                       title="Revoke this session"
@@ -354,7 +354,7 @@ export default function SessionManager({ isEntraAuth, storedToken }: SessionMana
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleAction(session.id, 'reactivate')}
                       disabled={actionLoading === session.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium
                         bg-emerald-500/10 text-emerald-300 border border-emerald-500/20
                         hover:bg-emerald-500/20 transition disabled:opacity-50 shrink-0"
                       title="Reactivate this session"

@@ -130,7 +130,7 @@ export default function ActivePins({ pins, justCreated }: ActivePinsProps) {
                   whileHover={{ scale: 1.08 }}
                   whileTap={{ scale: 0.92 }}
                   onClick={() => copyPin(pin.pin, pin.id)}
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all
+                  className={`w-9 h-9 rounded flex items-center justify-center transition-all
                     ${copiedId === pin.id
                       ? 'bg-emerald-500 text-white'
                       : 'bg-white/10 text-white/40 hover:bg-white/20 hover:text-white'
