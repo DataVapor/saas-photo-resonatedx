@@ -5,12 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Loader2, AlertCircle } from 'lucide-react'
 
 interface PinCreationProps {
-  isEntraAuth: boolean
-  storedToken: string
   onPinCreated: (pin: { id: string; pin: string; team_name: string }) => void
 }
 
-export default function PinCreation({ isEntraAuth, storedToken, onPinCreated }: PinCreationProps) {
+export default function PinCreation({ onPinCreated }: PinCreationProps) {
   const [teamName, setTeamName] = useState('')
   const [loading, setLoading] = useState(false)
   const [createError, setCreateError] = useState('')
@@ -24,9 +22,6 @@ export default function PinCreation({ isEntraAuth, storedToken, onPinCreated }: 
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-      }
-      if (!isEntraAuth) {
-        headers['x-admin-token'] = storedToken
       }
 
       const res = await fetch('/api/auth/create-session', {

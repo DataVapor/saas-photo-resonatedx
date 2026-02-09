@@ -18,10 +18,7 @@ interface Session {
   total_size: number
 }
 
-interface SessionManagerProps {
-  isEntraAuth: boolean
-  storedToken: string
-}
+interface SessionManagerProps {}
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
@@ -70,7 +67,7 @@ const statusConfig = {
   },
 }
 
-export default function SessionManager({ isEntraAuth, storedToken }: SessionManagerProps) {
+export default function SessionManager(_props: SessionManagerProps) {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -80,10 +77,8 @@ export default function SessionManager({ isEntraAuth, storedToken }: SessionMana
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const headers = useCallback((): Record<string, string> => {
-    const h: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (!isEntraAuth) h['x-admin-token'] = storedToken
-    return h
-  }, [isEntraAuth, storedToken])
+    return { 'Content-Type': 'application/json' }
+  }, [])
 
   const fetchSessions = useCallback(async () => {
     setLoading(true)

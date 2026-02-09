@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession, signIn, signOut } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  LogOut, Lock, Key, Shield, ChevronRight,
-  AlertCircle, Loader2, ImageIcon, User,
+  LogOut, Key, Shield,
+  Loader2, ImageIcon,
 } from 'lucide-react'
 import PhotoGrid from './components/PhotoGrid'
 import PinCreation from './components/PinCreation'
@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 /* ─── Types ──────────────────────────────────────────── */
-type Step = 'login' | 'dashboard'
 type AdminTab = 'pins' | 'photos'
 
 interface PinEntry {
@@ -93,19 +92,9 @@ function Particles() {
   )
 }
 
-/* ─── Props ──────────────────────────────────────────── */
-interface AdminDashboardProps {
-  entraIdConfigured: boolean
-}
-
 /* ─── Main Admin Page ────────────────────────────────── */
-export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProps) {
+export default function AdminDashboard() {
   const { data: session, status } = useSession()
-
-  const [step, setStep] = useState<Step>('login')
-  const [adminToken, setAdminToken] = useState('')
-  const [storedToken, setStoredToken] = useState('')
-  const [error, setError] = useState('')
 
   // Tab state
   const [activeTab, setActiveTab] = useState<AdminTab>('pins')
@@ -115,34 +104,7 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
   const [justCreated, setJustCreated] = useState<string | null>(null)
   const [sessionRefreshKey, setSessionRefreshKey] = useState(0)
 
-  const tokenRef = useRef<HTMLInputElement>(null)
-
-  // Auto-advance to dashboard when Entra ID session exists
-  useEffect(() => {
-    if (entraIdConfigured && status === 'authenticated' && session) {
-      setStep('dashboard')
-    }
-  }, [entraIdConfigured, status, session])
-
-  // Determine auth mode
-  const isEntraAuth = entraIdConfigured && !!session
-
-  useEffect(() => {
-    if (step === 'login' && !entraIdConfigured) tokenRef.current?.focus()
-  }, [step, entraIdConfigured])
-
-  /* ───── Login ──────────────────────────────── */
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!adminToken.trim()) {
-      setError('Admin token is required')
-      return
-    }
-    setStoredToken(adminToken)
-    setStep('dashboard')
-    setError('')
-    setAdminToken('')
-  }
+  const isAuthenticated = status === 'authenticated' && !!session
 
   /* ───── PIN Created callback ──────────────── */
   const handlePinCreated = (data: PinEntry) => {
@@ -154,21 +116,14 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
 
   /* ───── Logout ─────────────────────────────── */
   const logout = () => {
-    if (isEntraAuth) {
-      signOut({ callbackUrl: '/admin' })
-      return
-    }
-    setStoredToken('')
-    setPins([])
-    setStep('login')
+    signOut({ callbackUrl: '/admin' })
   }
 
   /* ═══════════════════════════════════════════════
      RENDER
      ═══════════════════════════════════════════════ */
 
-  // Show loading state while Entra ID session is being checked
-  if (entraIdConfigured && status === 'loading') {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-[#031a36] via-[#062e61] to-[#155197] flex items-center justify-center">
         <Particles />
@@ -183,7 +138,7 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
       <Particles />
 
       {/* ─── Dashboard header with tabs ─── */}
-      {step === 'dashboard' && (
+      {isAuthenticated && (
         <motion.header
           initial={{ y: -80 }}
           animate={{ y: 0 }}
@@ -191,14 +146,14 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
           className="sticky top-0 z-50 bg-gradient-to-r from-[#062e61] to-[#155197] text-white shadow-2xl shadow-[#062e61]/30"
         >
           <div className="max-w-7xl mx-auto px-4">
-            {/* Top row: logo + logout */}
+            {/* Top row: logo + avatar */}
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
                 <img src="/aspr-logo-white.png" alt="ASPR" className="h-12 w-auto drop-shadow-[0_0_12px_rgba(21,81,151,0.4)]" />
                 <div className="h-6 w-px bg-white/25" />
                 <span className="font-display text-xl tracking-wide uppercase">Admin Portal</span>
               </div>
-              {isEntraAuth && session?.user ? (
+              {session?.user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
@@ -298,7 +253,7 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
 
       <AnimatePresence mode="wait">
         {/* ═══ LOGIN STEP ═══ */}
-        {step === 'login' && (
+        {!isAuthenticated && (
           <motion.div
             key="login"
             initial={{ opacity: 1 }}
@@ -339,73 +294,22 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
                 </p>
               </motion.div>
 
-              {/* Login — SSO + token fallback */}
-              {entraIdConfigured && (
-                <motion.div variants={slideUp} className="space-y-4">
-                  <motion.button
-                    type="button"
-                    onClick={() => signIn('microsoft-entra-id', { callbackUrl: '/admin' })}
-                    whileHover={{ y: -1, boxShadow: '0 0 25px rgba(255,255,255,0.12)' }}
-                    whileTap={{ y: 0 }}
-                    className="w-full inline-flex items-center justify-center gap-2
-                      bg-white/90 backdrop-blur-sm text-[#062e61] py-3.5 rounded
-                      font-semibold text-base border border-white/30
-                      shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all"
-                  >
-                    <Shield className="w-5 h-5" />
-                    Sign in with HHS Account
-                  </motion.button>
-                  <div className="flex items-center gap-3 text-blue-200/30 text-xs">
-                    <div className="flex-1 h-px bg-blue-200/10" />
-                    <span>or</span>
-                    <div className="flex-1 h-px bg-blue-200/10" />
-                  </div>
-                </motion.div>
-              )}
-
-              <motion.form variants={slideUp} onSubmit={handleLogin} className="space-y-4">
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                  <input
-                    ref={tokenRef}
-                    type="password"
-                    value={adminToken}
-                    onChange={(e) => { setAdminToken(e.target.value); setError('') }}
-                    placeholder="Enter admin token"
-                    className="w-full pl-11 pr-4 py-3.5 rounded-lg bg-white/[0.07] backdrop-blur-sm
-                      border border-white/15 text-white placeholder-white/30 outline-none
-                      focus:border-blue-400/50 focus:ring-2 focus:ring-blue-400/15 transition-all"
-                  />
-                </div>
-
-                <AnimatePresence>
-                  {error && (
-                    <motion.p
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="flex items-center gap-2 justify-center text-red-400 text-sm"
-                    >
-                      <AlertCircle className="w-4 h-4" />
-                      {error}
-                    </motion.p>
-                  )}
-                </AnimatePresence>
-
+              {/* SSO Login */}
+              <motion.div variants={slideUp}>
                 <motion.button
-                  type="submit"
+                  type="button"
+                  onClick={() => signIn('microsoft-entra-id', { callbackUrl: '/admin' })}
                   whileHover={{ y: -1, boxShadow: '0 0 25px rgba(255,255,255,0.12)' }}
                   whileTap={{ y: 0 }}
                   className="w-full inline-flex items-center justify-center gap-2
-                    bg-white/[0.07] backdrop-blur-sm text-white/80 py-3.5 rounded
-                    font-semibold text-base border border-white/10
-                    shadow-[0_0_15px_rgba(255,255,255,0.03)] transition-all
-                    hover:bg-white/[0.12] hover:text-white"
+                    bg-white/90 backdrop-blur-sm text-[#062e61] py-3.5 rounded
+                    font-semibold text-base border border-white/30
+                    shadow-[0_0_15px_rgba(255,255,255,0.06)] transition-all"
                 >
-                  Authenticate with Token
-                  <ChevronRight className="w-4 h-4" />
+                  <Shield className="w-5 h-5" />
+                  Sign in with HHS Account
                 </motion.button>
-              </motion.form>
+              </motion.div>
 
               {/* Footer */}
               <motion.div variants={slideUp} className="pt-2 lg:pt-4 space-y-1 text-xs text-blue-300/25">
@@ -417,7 +321,7 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
         )}
 
         {/* ═══ DASHBOARD STEP ═══ */}
-        {step === 'dashboard' && (
+        {isAuthenticated && (
           <motion.div
             key="dashboard"
             variants={pageVariants}
@@ -428,7 +332,7 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
           >
             {/* ─── Photos tab ─── */}
             {activeTab === 'photos' && (
-              <PhotoGrid isEntraAuth={isEntraAuth} storedToken={storedToken} />
+              <PhotoGrid />
             )}
 
             {/* ─── PINs tab ─── */}
@@ -437,8 +341,6 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
               {/* Left column: Create PIN + Active PINs */}
               <div className="lg:w-[400px] xl:w-[440px] shrink-0 space-y-4 overflow-y-auto lg:max-h-full">
                 <PinCreation
-                  isEntraAuth={isEntraAuth}
-                  storedToken={storedToken}
                   onPinCreated={handlePinCreated}
                 />
                 <ActivePins pins={pins} justCreated={justCreated} />
@@ -448,8 +350,6 @@ export default function AdminDashboard({ entraIdConfigured }: AdminDashboardProp
               <div className="flex-1 min-h-0 flex flex-col min-w-0">
                 <SessionManager
                   key={sessionRefreshKey}
-                  isEntraAuth={isEntraAuth}
-                  storedToken={storedToken}
                 />
               </div>
             </div>

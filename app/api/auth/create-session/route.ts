@@ -1,4 +1,4 @@
-import { randomInt, timingSafeEqual } from 'crypto'
+import { randomInt } from 'crypto'
 import { query } from '@/lib/db'
 import { rateLimit } from '@/lib/rateLimit'
 import { validation, createAuditLog } from '@/lib/security'
@@ -12,46 +12,16 @@ function generatePin(): string {
   return randomInt(100000, 999999).toString()
 }
 
-function safeCompare(a: string, b: string): boolean {
-  if (!a || !b) return false
-  const bufA = Buffer.from(a, 'utf8')
-  const bufB = Buffer.from(b, 'utf8')
-  if (bufA.length !== bufB.length) {
-    // Compare against self to keep constant time, then return false
-    timingSafeEqual(bufA, bufA)
-    return false
-  }
-  return timingSafeEqual(bufA, bufB)
-}
-
 export async function POST(req: Request) {
   try {
     const ip = req.headers.get('x-forwarded-for') || 'unknown'
 
-    // --- Auth check: Entra ID session OR ADMIN_TOKEN fallback ---
-    let isAuthorized = false
-    let authMethod = 'unknown'
-    let adminUser = 'token-auth'
-
-    // 1. Try Auth.js session (Entra ID)
+    // --- Auth check: Entra ID session required ---
     const session = await auth()
-    if (session?.user) {
-      isAuthorized = true
-      authMethod = 'entra-id'
-      adminUser = session.user.email || session.user.name || 'entra-user'
-    }
+    const adminUser = session?.user?.email || session?.user?.name || 'entra-user'
+    const authMethod = 'entra-id'
 
-    // 2. Fallback: ADMIN_TOKEN header
-    if (!isAuthorized) {
-      const adminToken = req.headers.get('x-admin-token') || ''
-      if (safeCompare(adminToken, process.env.ADMIN_TOKEN || '')) {
-        isAuthorized = true
-        authMethod = 'admin-token'
-      }
-    }
-
-    // 3. Reject if neither method succeeded
-    if (!isAuthorized) {
+    if (!session?.user) {
       const rateLimitKey = `admin-auth-fail:${ip}`
       const limit = rateLimit(rateLimitKey, {
         maxAttempts: 3,
@@ -90,7 +60,7 @@ export async function POST(req: Request) {
         reason: 'PIN generation rate limit exceeded',
       })
       console.warn('SECURITY_ALERT:', auditLog)
-      
+
       return Response.json(
         { error: 'Rate limit exceeded for PIN generation' },
         { status: 429 }
@@ -98,7 +68,7 @@ export async function POST(req: Request) {
     }
 
     const { teamName } = await req.json()
-    
+
     // OWASP: Input Validation
     if (teamName) {
       const validation_result = validation.validateTeamName(teamName)

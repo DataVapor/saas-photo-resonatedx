@@ -40,10 +40,7 @@ export interface AdminPhoto {
   originalUrl: string
 }
 
-interface PhotoGridProps {
-  isEntraAuth: boolean
-  storedToken: string
-}
+interface PhotoGridProps {}
 
 /* ─── Helpers ────────────────────────────────────────── */
 function formatBytes(bytes: number): string {
@@ -92,7 +89,7 @@ function useColumnCount() {
 }
 
 /* ─── Main Component ─────────────────────────────────── */
-export default function PhotoGrid({ isEntraAuth, storedToken }: PhotoGridProps) {
+export default function PhotoGrid(_props: PhotoGridProps) {
   const { toast } = useToast()
   const [photos, setPhotos] = useState<AdminPhoto[]>([])
   const [loading, setLoading] = useState(true)
@@ -120,12 +117,8 @@ export default function PhotoGrid({ isEntraAuth, storedToken }: PhotoGridProps) 
 
   /* ───── Auth headers ─────────────────────────── */
   const getHeaders = useCallback((): Record<string, string> => {
-    const headers: Record<string, string> = {}
-    if (!isEntraAuth) {
-      headers['x-admin-token'] = storedToken
-    }
-    return headers
-  }, [isEntraAuth, storedToken])
+    return {}
+  }, [])
 
   /* ───── Fetch photos ─────────────────────────── */
   const fetchPhotos = useCallback(async (cursor?: string) => {
