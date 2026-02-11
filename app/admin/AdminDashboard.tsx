@@ -149,7 +149,7 @@ export default function AdminDashboard() {
             {/* Top row: logo + avatar */}
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
-                <img src="/aspr-logo-white.png" alt="ASPR" className="h-12 w-auto drop-shadow-[0_0_12px_rgba(21,81,151,0.4)]" />
+                <img src="/ocio-logos/ocio-tech-white.png" alt="HHS PhotoHub" className="h-12 w-auto drop-shadow-[0_0_12px_rgba(21,81,151,0.4)]" />
                 <div className="h-6 w-px bg-white/25" />
                 <span className="font-display text-xl tracking-wide uppercase">Admin Portal</span>
               </div>
@@ -267,7 +267,7 @@ export default function AdminDashboard() {
               animate="animate"
               className="text-center space-y-6 w-full max-w-sm"
             >
-              {/* HHS + ASPR logos */}
+              {/* HHS + OCIO logos */}
               <motion.div variants={slideUp}>
                 <img
                   src="/hhs_longlogo_white.png"
@@ -278,8 +278,8 @@ export default function AdminDashboard() {
 
               <motion.div variants={popIn}>
                 <img
-                  src="/aspr-logo-white.png"
-                  alt="ASPR"
+                  src="/ocio-logos/ocio-tech-white.png"
+                  alt="HHS PhotoHub"
                   className="h-16 md:h-20 lg:h-24 mx-auto drop-shadow-[0_0_30px_rgba(21,81,151,0.5)]"
                 />
               </motion.div>
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
 
               {/* Footer */}
               <motion.div variants={slideUp} className="pt-2 lg:pt-4 space-y-1 text-xs text-blue-300/25">
-                <p className="font-semibold">Administration for Strategic Preparedness and Response</p>
+                <p className="font-semibold">Office of the Chief Information Officer</p>
                 <p>U.S. Department of Health and Human Services</p>
               </motion.div>
             </motion.div>

@@ -1,4 +1,4 @@
-# ASPR Photo Upload - Modern Design System
+# HHS PhotoHub - Modern Design System
 
 ## Overview
 
@@ -11,7 +11,7 @@ This application uses **shadcn/ui** - a modern component library built on Tailwi
 - **Variants**: default, destructive, outline, secondary, ghost, link
 - **Sizes**: default, sm, lg, icon
 - **Usage**: All clickable actions throughout the application
-- **Default Color**: ASPR Blue (#155197)
+- **Default Color**: PhotoHub Blue (#155197)
 
 ```tsx
 import { Button } from '@/components/ui/button'
@@ -115,20 +115,20 @@ const classes = cn(
 
 ## Color System
 
-All components integrate with the ASPR branding color palette:
+All components integrate with the PhotoHub branding color palette:
 
-- **Primary Blue**: `#155197` (ASPR blue)
-- **Dark Blue**: `#062e61` (ASPR dark)
+- **Primary Blue**: `#155197` (PhotoHub blue)
+- **Dark Blue**: `#062e61` (PhotoHub dark)
 - **Secondary Gold**: `#AA6404`
 - **Accent Red**: `#990000`
 - **Light Blue**: `#fbd098`
 - **Light Red**: `#feecea`
 
 ### Tailwind Classes
-- `text-aspr-blue-dark` - Dark blue text
-- `text-aspr-blue-primary` - Primary blue text
-- `bg-aspr-blue-primary` - Primary blue background
-- `border-aspr-blue-primary` - Blue border
+- `text-photohub-blue-dark` - Dark blue text
+- `text-photohub-blue-primary` - Primary blue text
+- `bg-photohub-blue-primary` - Primary blue background
+- `border-photohub-blue-primary` - Blue border
 - `placeholder-gray-400` - Gray placeholder text
 
 ## Pages Using Design System
@@ -197,7 +197,7 @@ import { Lock, Camera, MapPin, AlertCircle, CheckCircle, LogOut, Plus, Copy, Key
 - Component path aliases configured for easy imports
 
 ### Tailwind Config
-- ASPR color palette integrated
+- PhotoHub color palette integrated
 - Custom color variables in CSS root
 - Utility-first approach with component library
 

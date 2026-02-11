@@ -164,8 +164,8 @@ export default function PhotoUploadWizard() {
 
   // Restore session
   useEffect(() => {
-    const t = sessionStorage.getItem('aspr_token')
-    const team = sessionStorage.getItem('aspr_team')
+    const t = sessionStorage.getItem('photohub_token')
+    const team = sessionStorage.getItem('photohub_team')
     if (t) {
       setToken(t)
       setTeamName(team || 'Anonymous')
@@ -221,9 +221,9 @@ export default function PhotoUploadWizard() {
         throw new Error(d.error || 'Invalid PIN')
       }
       const { token: t, sessionId, teamName: team } = await res.json()
-      sessionStorage.setItem('aspr_token', t)
-      sessionStorage.setItem('aspr_session_id', sessionId)
-      sessionStorage.setItem('aspr_team', team)
+      sessionStorage.setItem('photohub_token', t)
+      sessionStorage.setItem('photohub_session_id', sessionId)
+      sessionStorage.setItem('photohub_team', team)
       setToken(t)
       setTeamName(team)
       setPinValid(true)
@@ -451,7 +451,7 @@ export default function PhotoUploadWizard() {
         >
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src="/aspr-logo-white.png" alt="ASPR" className="h-10 w-auto drop-shadow-[0_0_12px_rgba(21,81,151,0.4)]" />
+              <img src="/ocio-logos/ocio-tech-white.png" alt="HHS PhotoHub" className="h-10 w-auto drop-shadow-[0_0_12px_rgba(21,81,151,0.4)]" />
               <div className="h-6 w-px bg-white/25" />
               <span className="text-sm font-medium text-white/70">Team: {teamName}</span>
             </div>
@@ -502,11 +502,11 @@ export default function PhotoUploadWizard() {
                 />
               </motion.div>
 
-              {/* ASPR logo */}
+              {/* OCIO logo */}
               <motion.div variants={popIn}>
                 <img
-                  src="/aspr-logo-white.png"
-                  alt="ASPR"
+                  src="/ocio-logos/ocio-tech-white.png"
+                  alt="HHS PhotoHub"
                   className="h-16 md:h-20 lg:h-24 mx-auto drop-shadow-[0_0_40px_rgba(21,81,151,0.6)]"
                 />
               </motion.div>
@@ -514,10 +514,10 @@ export default function PhotoUploadWizard() {
               {/* Title */}
               <motion.div variants={slideUp} className="space-y-2">
                 <h1 className="text-4xl md:text-5xl lg:text-7xl font-display text-white tracking-wide leading-tight uppercase">
-                  Photo Repository
+                  PhotoHub
                 </h1>
                 <p className="text-base md:text-lg lg:text-xl text-blue-200/60 max-w-lg mx-auto leading-relaxed">
-                  Secure photo upload for disaster response and emergency documentation
+                  Secure photo upload &amp; management — a demo by OCIO, rebrandable for any OpDiv
                 </p>
               </motion.div>
 
@@ -541,7 +541,7 @@ export default function PhotoUploadWizard() {
               {/* Footer */}
               <motion.div variants={slideUp} className="pt-2 lg:pt-6 space-y-1 text-xs text-blue-300/30">
                 <p className="font-semibold">
-                  Administration for Strategic Preparedness and Response
+                  Office of the Chief Information Officer
                 </p>
                 <p>U.S. Department of Health and Human Services</p>
               </motion.div>
@@ -566,11 +566,11 @@ export default function PhotoUploadWizard() {
               animate="animate"
               className="text-center space-y-6 w-full max-w-sm"
             >
-              {/* ASPR logo */}
+              {/* OCIO logo */}
               <motion.div variants={slideUp}>
                 <img
-                  src="/aspr-logo-white.png"
-                  alt="ASPR"
+                  src="/ocio-logos/ocio-tech-white.png"
+                  alt="HHS PhotoHub"
                   className="h-16 md:h-20 lg:h-24 mx-auto drop-shadow-[0_0_30px_rgba(21,81,151,0.5)]"
                 />
               </motion.div>
@@ -1098,13 +1098,13 @@ export default function PhotoUploadWizard() {
             className="absolute inset-0 flex flex-col items-center justify-center px-6 z-10"
           >
             <div className="text-center space-y-6">
-              {/* ASPR logo */}
+              {/* OCIO logo */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 0.6 }}
                 transition={{ delay: 0.3 }}
               >
-                <img src="/aspr-logo-white.png" alt="ASPR" className="h-12 lg:h-14 mx-auto drop-shadow-[0_0_20px_rgba(21,81,151,0.4)]" />
+                <img src="/ocio-logos/ocio-tech-white.png" alt="HHS PhotoHub" className="h-12 lg:h-14 mx-auto drop-shadow-[0_0_20px_rgba(21,81,151,0.4)]" />
               </motion.div>
 
               {/* Progress ring */}
@@ -1220,9 +1220,9 @@ export default function PhotoUploadWizard() {
               animate="animate"
               className="text-center space-y-6 lg:space-y-8 relative z-10"
             >
-              {/* ASPR logo */}
+              {/* OCIO logo */}
               <motion.div variants={slideUp}>
-                <img src="/aspr-logo-white.png" alt="ASPR" className="h-12 lg:h-14 mx-auto opacity-60 drop-shadow-[0_0_20px_rgba(21,81,151,0.4)]" />
+                <img src="/ocio-logos/ocio-tech-white.png" alt="HHS PhotoHub" className="h-12 lg:h-14 mx-auto opacity-60 drop-shadow-[0_0_20px_rgba(21,81,151,0.4)]" />
               </motion.div>
 
               {/* Success icon */}
@@ -1298,12 +1298,12 @@ export default function PhotoUploadWizard() {
             transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
           >
             <img
-              src="/aspr-logo-white.png"
-              alt="ASPR"
+              src="/ocio-logos/ocio-tech-white.png"
+              alt="HHS PhotoHub"
               className="h-16 md:h-20 lg:h-24 drop-shadow-[0_0_40px_rgba(21,81,151,0.6)] animate-preloader-logo"
             />
             <p className="text-xs text-white/30 tracking-widest uppercase mt-6 animate-preloader-text">
-              Photo Repository
+              PhotoHub
             </p>
           </motion.div>
         )}

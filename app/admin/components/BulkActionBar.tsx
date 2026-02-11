@@ -151,7 +151,7 @@ export default function BulkActionBar({
         setDownloadProgress('Creating ZIP...')
         const zipBlob = await zip.generateAsync({ type: 'blob' })
         const timestamp = new Date().toISOString().split('T')[0]
-        saveAs(zipBlob, `aspr-photos-${timestamp}.zip`)
+        saveAs(zipBlob, `photohub-export-${timestamp}.zip`)
       }
 
       onComplete()

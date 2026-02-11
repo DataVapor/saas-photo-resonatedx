@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
-import { Bebas_Neue, Open_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { SessionProvider } from "next-auth/react";
 import SmoothScroll from "@/components/SmoothScroll";
 import "./globals.css";
 
-const bebasNeue = Bebas_Neue({
-  weight: "400",
+const bebasNeue = localFont({
+  src: "../public/fonts/BebasNeue-Regular.woff2",
   variable: "--font-bebas",
-  subsets: ["latin"],
+  display: "swap",
 });
 
-const openSans = Open_Sans({
+const openSans = localFont({
+  src: "../public/fonts/OpenSans-Latin.woff2",
   variable: "--font-opensans",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "ASPR Photo Repository",
-  description: "ASPR Photo Repository - Administration for Strategic Preparedness and Response",
+  title: "HHS PhotoHub",
+  description: "HHS PhotoHub — Secure photo upload & management. A demo product by OCIO, rebrandable for any OpDiv.",
 };
 
 export default function RootLayout({

@@ -1,40 +1,40 @@
 @import "tailwindcss";
 
-/* ASPR Brand Color Palette */
+/* PhotoHub Brand Color Palette */
 :root {
   /* Primary Colors */
-  --aspr-blue-primary: #155197;
-  --aspr-blue-dark: #062e61;
+  --photohub-blue-primary: #155197;
+  --photohub-blue-dark: #062e61;
   
   /* Secondary Colors */
-  --aspr-gold: #AA6404;
-  --aspr-gold-light: #fbd098;
-  --aspr-red: #990000;
-  --aspr-red-light: #feecea;
-  --aspr-blue-medium: #2477bd;
-  --aspr-blue-light: #dde8f4;
+  --photohub-gold: #AA6404;
+  --photohub-gold-light: #fbd098;
+  --photohub-red: #990000;
+  --photohub-red-light: #feecea;
+  --photohub-blue-medium: #2477bd;
+  --photohub-blue-light: #dde8f4;
   
   /* Accent Colors - Neutral */
-  --aspr-gray-dark: #323232;
-  --aspr-gray-light: #e6e6e4;
+  --photohub-gray-dark: #323232;
+  --photohub-gray-light: #e6e6e4;
   
   /* Accent Colors - Charts/Graphs */
-  --aspr-purple: #604878;
-  --aspr-green: #4E8542;
+  --photohub-purple: #604878;
+  --photohub-green: #4E8542;
   
   /* Theme Colors */
   --background: #ffffff;
-  --foreground: var(--aspr-gray-dark);
+  --foreground: var(--photohub-gray-dark);
 
   /* shadcn/ui semantic tokens */
   --popover: #ffffff;
-  --popover-foreground: var(--aspr-gray-dark);
+  --popover-foreground: var(--photohub-gray-dark);
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
   --accent: #f1f5f9;
-  --accent-foreground: var(--aspr-gray-dark);
+  --accent-foreground: var(--photohub-gray-dark);
   --border: #e2e8f0;
-  --ring: var(--aspr-blue-primary);
+  --ring: var(--photohub-blue-primary);
   --radius: 0.5rem;
 }
 
@@ -44,17 +44,17 @@
   --font-sans: var(--font-opensans), 'Open Sans', Arial, Helvetica, sans-serif;
   --font-display: var(--font-bebas), 'Bebas Neue', Impact, sans-serif;
 
-  /* ASPR Brand Colors for Tailwind */
-  --color-aspr-blue-primary: var(--aspr-blue-primary);
-  --color-aspr-blue-dark: var(--aspr-blue-dark);
-  --color-aspr-blue-medium: var(--aspr-blue-medium);
-  --color-aspr-blue-light: var(--aspr-blue-light);
-  --color-aspr-gold: var(--aspr-gold);
-  --color-aspr-gold-light: var(--aspr-gold-light);
-  --color-aspr-red: var(--aspr-red);
-  --color-aspr-red-light: var(--aspr-red-light);
-  --color-aspr-gray-dark: var(--aspr-gray-dark);
-  --color-aspr-gray-light: var(--aspr-gray-light);
+  /* PhotoHub Brand Colors for Tailwind */
+  --color-photohub-blue-primary: var(--photohub-blue-primary);
+  --color-photohub-blue-dark: var(--photohub-blue-dark);
+  --color-photohub-blue-medium: var(--photohub-blue-medium);
+  --color-photohub-blue-light: var(--photohub-blue-light);
+  --color-photohub-gold: var(--photohub-gold);
+  --color-photohub-gold-light: var(--photohub-gold-light);
+  --color-photohub-red: var(--photohub-red);
+  --color-photohub-red-light: var(--photohub-red-light);
+  --color-photohub-gray-dark: var(--photohub-gray-dark);
+  --color-photohub-gray-light: var(--photohub-gray-light);
 
   /* shadcn/ui semantic colors for Tailwind v4 */
   --color-popover: var(--popover);
@@ -70,7 +70,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: var(--aspr-blue-dark);
+    --background: var(--photohub-blue-dark);
     --foreground: #ffffff;
   }
 }
@@ -96,36 +96,36 @@ body {
   font-family: var(--font-bebas), 'Bebas Neue', Impact, sans-serif;
 }
 
-/* ASPR Header Styles */
-.aspr-header {
-  background-color: var(--aspr-blue-dark);
+/* PhotoHub Header Styles */
+.photohub-header {
+  background-color: var(--photohub-blue-dark);
   color: white;
 }
 
-/* ASPR Button Styles */
-.aspr-btn-primary {
-  background-color: var(--aspr-blue-primary);
-  color: white;
-  transition: background-color 0.2s;
-}
-
-.aspr-btn-primary:hover {
-  background-color: var(--aspr-blue-dark);
-}
-
-.aspr-btn-secondary {
-  background-color: var(--aspr-gold);
+/* PhotoHub Button Styles */
+.photohub-btn-primary {
+  background-color: var(--photohub-blue-primary);
   color: white;
   transition: background-color 0.2s;
 }
 
-/* ASPR Link Styles */
-.aspr-link {
-  color: var(--aspr-blue-primary);
+.photohub-btn-primary:hover {
+  background-color: var(--photohub-blue-dark);
 }
 
-.aspr-link:hover {
-  color: var(--aspr-blue-dark);
+.photohub-btn-secondary {
+  background-color: var(--photohub-gold);
+  color: white;
+  transition: background-color 0.2s;
+}
+
+/* PhotoHub Link Styles */
+.photohub-link {
+  color: var(--photohub-blue-primary);
+}
+
+.photohub-link:hover {
+  color: var(--photohub-blue-dark);
 }
 
 /* Floating particle animation */

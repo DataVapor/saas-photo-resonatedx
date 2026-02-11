@@ -2,7 +2,7 @@
 # =============================================================================
 # Azure Front Door — Route App Service behind AFD (Premium)
 # =============================================================================
-# Puts ONLY app-aspr-photos behind AFD. No impact on other apps on the plan.
+# Puts ONLY app-aspr-photos (HHS PhotoHub) behind AFD. No impact on other apps on the plan.
 #
 # Prerequisites:
 #   - az CLI logged in with sufficient permissions
@@ -61,7 +61,7 @@ MSYS_NO_PATHCONV=1 az afd origin create \
   --enable-private-link true \
   --private-link-resource "/subscriptions/${SUBSCRIPTION}/resourceGroups/${RG}/providers/Microsoft.Web/sites/${APP_NAME}" \
   --private-link-location "$LOCATION" \
-  --private-link-request-message "AFD origin for ASPR Photos app" \
+  --private-link-request-message "AFD origin for HHS PhotoHub app" \
   --private-link-sub-resource-type "sites"
 
 echo ""
@@ -103,13 +103,40 @@ MSYS_NO_PATHCONV=1 az network front-door waf-policy managed-rules add \
   --version "2.1" \
   --action Block
 
-# Add bot protection ruleset
+# Bot Manager 1.0 — Log mode (Block mode causes false positives on browsers)
 MSYS_NO_PATHCONV=1 az network front-door waf-policy managed-rules add \
   --resource-group "$RG" \
   --policy-name "wafAsprPhotos" \
   --type Microsoft_BotManagerRuleSet \
   --version "1.0" \
-  --action Block
+  --action Log
+
+# WAF Exclusions — OAuth callback parameters trigger OWASP false positives
+# (Auth.js state/code params contain base64 that trips SQL injection & XSS rules)
+echo "  Adding WAF exclusions for OAuth callback parameters..."
+for PARAM in "state" "code" "session_state"; do
+  MSYS_NO_PATHCONV=1 az network front-door waf-policy managed-rules exclusion add \
+    --resource-group "$RG" \
+    --policy-name "wafAsprPhotos" \
+    --type Microsoft_DefaultRuleSet \
+    --match-variable QueryStringArgNames \
+    --operator Contains \
+    --value "$PARAM" \
+    2>/dev/null || echo "  (Exclusion for $PARAM already exists)"
+done
+
+# Auth.js session cookies also trigger OWASP managed rules
+echo "  Adding WAF exclusions for Auth.js session cookies..."
+for COOKIE in "authjs" "next-auth"; do
+  MSYS_NO_PATHCONV=1 az network front-door waf-policy managed-rules exclusion add \
+    --resource-group "$RG" \
+    --policy-name "wafAsprPhotos" \
+    --type Microsoft_DefaultRuleSet \
+    --match-variable RequestCookieNames \
+    --operator Contains \
+    --value "$COOKIE" \
+    2>/dev/null || echo "  (Exclusion for $COOKIE already exists)"
+done
 
 # Get WAF policy ID
 WAF_ID=$(MSYS_NO_PATHCONV=1 az network front-door waf-policy show \
