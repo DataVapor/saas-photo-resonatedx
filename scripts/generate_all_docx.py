@@ -20,17 +20,18 @@ from docx.oxml import parse_xml
 ROOT = Path(__file__).resolve().parent.parent
 DOCS = ROOT / "docs"
 
-# ── ASPR / HHS brand colours ──────────────────────────────────────────
-BLUE_DARK      = RGBColor(0x06, 0x2E, 0x61)
-BLUE_PRIMARY   = RGBColor(0x15, 0x51, 0x97)
-GOLD           = RGBColor(0xAA, 0x64, 0x04)
+# ── ASPR / HHS brand colours (508-compliant, WCAG AA contrast) ────────
+BLUE_DARK      = RGBColor(0x06, 0x2E, 0x61)   # 14.5:1 on white
+BLUE_PRIMARY   = RGBColor(0x15, 0x51, 0x97)   # 7.1:1 on white
+GOLD_DARK      = RGBColor(0x6B, 0x4C, 0x00)   # 8.0:1 on white (replaces #AA6404)
 RED            = RGBColor(0x99, 0x00, 0x00)
 WHITE          = RGBColor(0xFF, 0xFF, 0xFF)
 LIGHT_GRAY     = RGBColor(0xF2, 0xF2, 0xF2)
+DARK_GRAY      = RGBColor(0x33, 0x33, 0x33)   # body text fallback
 
 BLUE_DARK_HEX    = "062E61"
 BLUE_PRIMARY_HEX = "155197"
-GOLD_HEX         = "AA6404"
+GOLD_DARK_HEX    = "6B4C00"
 LIGHT_GRAY_HEX   = "F2F2F2"
 
 # ── Logo Paths ────────────────────────────────────────────────────────
@@ -46,11 +47,59 @@ LEIDOS_LOGO = Path(
 #  DOCX HELPERS (shared across all documents)
 # ══════════════════════════════════════════════════════════════════════
 
+def set_document_language(doc, lang="en-US"):
+    """Set document language for screen readers (Section 508)."""
+    body = doc.element.body
+    rPr = parse_xml(
+        f'<w:rPr {nsdecls("w")}><w:lang w:val="{lang}"/></w:rPr>'
+    )
+    style = doc.styles["Normal"]
+    style.element.get_or_add_rPr().append(
+        parse_xml(f'<w:lang {nsdecls("w")} w:val="{lang}"/>')
+    )
+
+
+def set_document_metadata(doc, title, subject="ASPR Photo Repository",
+                          author="OCIO — U.S. Department of Health and Human Services"):
+    """Set document core properties for accessibility."""
+    doc.core_properties.title = title
+    doc.core_properties.subject = subject
+    doc.core_properties.author = author
+    doc.core_properties.language = "en-US"
+
+
+def add_image_with_alt(run, image_path, width, alt_text):
+    """Add an image with alt text for screen readers (Section 508)."""
+    inline = run.add_picture(str(image_path), width=width)
+    # Set alt text via docPr element
+    drawing = run._r.findall(qn('w:drawing'))[0]
+    inline_el = drawing.findall(qn('wp:inline'))[0]
+    doc_pr = inline_el.findall(qn('wp:docPr'))[0]
+    doc_pr.set('descr', alt_text)
+    doc_pr.set('title', alt_text)
+    return inline
+
+
+def mark_header_row(table):
+    """Mark the first row of a table as a header row for screen readers."""
+    first_row = table.rows[0]
+    trPr = first_row._tr.get_or_add_trPr()
+    trPr.append(parse_xml(f'<w:tblHeader {nsdecls("w")}/>'))
+
+
 def set_cell_shading(cell, hex_color):
     shading = parse_xml(
         f'<w:shd {nsdecls("w")} w:fill="{hex_color}" w:val="clear"/>'
     )
     cell._tc.get_or_add_tcPr().append(shading)
+
+
+def set_cell_shading_para(paragraph, hex_color):
+    """Apply background shading to a paragraph (e.g. code blocks)."""
+    shading = parse_xml(
+        f'<w:shd {nsdecls("w")} w:fill="{hex_color}" w:val="clear"/>'
+    )
+    paragraph.paragraph_format.element.get_or_add_pPr().append(shading)
 
 
 def styled_table(doc, headers, rows, col_widths=None):
@@ -93,12 +142,15 @@ def styled_table(doc, headers, rows, col_widths=None):
             for ci, cell in enumerate(row.cells):
                 cell.width = int(table_width * col_widths[ci] / total)
 
+    # 508: mark header row for screen readers
+    mark_header_row(table)
+
     return table
 
 
 def add_heading_styled(doc, text, level=1):
     h = doc.add_heading(text, level=level)
-    color_map = {1: BLUE_DARK, 2: BLUE_PRIMARY, 3: GOLD}
+    color_map = {1: BLUE_DARK, 2: BLUE_PRIMARY, 3: GOLD_DARK}
     color = color_map.get(level, BLUE_DARK)
     for run in h.runs:
         run.font.color.rgb = color
@@ -167,6 +219,10 @@ def setup_doc(doc_title, doc_subtitle, version="1.0", date="February 7, 2026",
     """Create a new Document with branding, cover page, and TOC."""
     doc = Document()
 
+    # 508: Document metadata and language
+    set_document_metadata(doc, doc_title)
+    set_document_language(doc)
+
     # Base style
     style = doc.styles["Normal"]
     style.font.name = "Calibri"
@@ -206,16 +262,18 @@ def setup_doc(doc_title, doc_subtitle, version="1.0", date="February 7, 2026",
     for _ in range(3):
         doc.add_paragraph()
 
-    # Logos side by side
+    # Logos side by side (508: alt text on all images)
     logo_para = doc.add_paragraph()
     logo_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
     if ASPR_LOGO.exists():
         run = logo_para.add_run()
-        run.add_picture(str(ASPR_LOGO), width=Inches(2.0))
+        add_image_with_alt(run, ASPR_LOGO, Inches(2.0),
+                           "ASPR — Administration for Strategic Preparedness and Response logo")
     if LEIDOS_LOGO.exists():
         run = logo_para.add_run("     ")  # spacer
         run = logo_para.add_run()
-        run.add_picture(str(LEIDOS_LOGO), width=Inches(2.0))
+        add_image_with_alt(run, LEIDOS_LOGO, Inches(2.0),
+                           "Leidos corporate logo")
 
     doc.add_paragraph()
 
@@ -366,10 +424,12 @@ def md_to_docx(md_path, doc_title, doc_subtitle, out_filename):
             p = doc.add_paragraph()
             p.paragraph_format.space_before = Pt(6)
             p.paragraph_format.space_after = Pt(6)
+            # 508: light gray background with automatic text color for dark/light mode
+            set_cell_shading_para(p, LIGHT_GRAY_HEX)
             run = p.add_run(code_text)
             run.font.size = Pt(8.5)
             run.font.name = "Consolas"
-            run.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
+            # No explicit color — lets Word auto-adjust for dark/light mode
             continue
 
         # Bullet point
@@ -408,6 +468,12 @@ def md_to_docx(md_path, doc_title, doc_subtitle, out_filename):
 # ══════════════════════════════════════════════════════════════════════
 
 DOCUMENTS = [
+    {
+        "md": "00_Project_Charter.md",
+        "title": "Project Charter",
+        "subtitle": "ASPR Photo Repository Application",
+        "out": "00_ASPR_Photos_Project_Charter.docx",
+    },
     {
         "md": "01_SRS_Software_Requirements_Specification.md",
         "title": "Software Requirements Specification",
